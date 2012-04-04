@@ -25,6 +25,22 @@ even ready for assessment.
 
 The first alpha release is expectecd in June/July 2012.
 
+=head2 HOW TO
+
+Documentation for the project is in Perl based 'pod' files.
+They are located in the source code tree where they are 
+relevant.  Its great that github.com is using the multi-rendering
+capability that was one of the purposed of the POD format.
+
+Overall documenation is placed in the 
+L<https://github.com/yesxorno/rpzla/tree/master/doc> 
+directory.
+
+Wiki's may come. The current focus is that if you 
+download the repository onto a potentially command line
+only server, and you still have the doco there in easily readable
+form.  That is the Perl thing: pod == Plain Old Documentation
+
 =head2 Funding and Sponsorship
 
 This project is funded exclusively by the generous donation of time 
