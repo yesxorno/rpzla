@@ -204,10 +204,10 @@ basic understanding of Perl and how to install modules from CPAN
 
 I.e if you are a 'novice' in any of these areas, this is going to be hard.
 
-=head3 For Contribution
-
 If you're going to be deploying, please provide feedback about any
 challenges that you're had.
+
+=head3 For Contribution
 
 If you wish to contribute to the code, you'll need:
 
