@@ -1,0 +1,18 @@
+
+=head1 Loading Sample Data
+
+To load data, create the database and user and tables and views.
+
+If you have installed the rpzla.conf then you can upload all sample
+data with
+
+	./upload.pl
+
+Otherwise, you need to supply the user and database (and possibly password):
+
+	( ./web.pl && ./dns.pl ) | psql <user> <db>
+
+=head2 Modifying the Sample Data
+
+The first field in the data is the number of days in the past that
+should be inserted into the database.  E.g 2 means 2 days in the past.

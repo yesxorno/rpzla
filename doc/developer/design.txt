@@ -1,0 +1,38 @@
+
+Logging
+-------
+
+All data shall be shipped off the source system to a single
+relational database.
+
+DNS data:
+
+date/time stamp
+client IP
+client hostname (reverse lookup)
+domain requested
+rpz id (identifies which rpz issued the response)
+resolver name (hostname of the resolver)
+
+Web site data:
+
+date/time stamp
+domain requested
+client IP
+client hostname
+
+Database
+--------
+
+RDBMS choice is PostgreSQL.  
+
+For the RDBMS, views will be used for all queries (rather than
+have lots of SQL in the code).
+
+Web Site
+--------
+
+Not sure if to use Perl or Python.  Perhaps Mojolicious.
+
+
+

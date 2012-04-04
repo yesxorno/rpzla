@@ -1,0 +1,43 @@
+body, html 
+{
+	margin:0;
+	padding:0;
+	color:#000;
+}
+
+#wrap 
+{
+	width:1024px;
+	margin:0 auto;
+}
+#header 
+{
+}
+
+#nav 
+{
+}
+
+#nav ul {
+	margin:0;
+	padding:0;
+	list-style:none;
+}
+
+#nav li {
+	display:inline;
+	margin:0;
+	padding:0;
+}
+
+#main 
+{
+}
+
+#sidebar 
+{
+}
+
+#footer {
+}
+

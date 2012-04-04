@@ -1,0 +1,16 @@
+
+=head1 Utility Scripts
+
+=head2 Overview
+
+This directory contains the log scrapper and other scripts
+that are the 'glue' for RPZLA.
+
+Each script is described in its 'man page' which can be invoked
+by calling the script with the '-m' option.
+
+E.g for the rplza-bind.pl script:
+
+	rpzla-bind.pl -m
+
+will show its man page which describes its purpose, usage etc..

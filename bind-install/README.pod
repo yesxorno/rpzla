@@ -1,0 +1,13 @@
+
+=head1 BIND Install
+
+Dont do this.  Its a stop-gap measure for RHEL6.  Use your
+distro's standard install mechanism.  If you cant get a 
+version of BIND that supports RPZ, you may find some
+help with the config under rhel6/.
+
+Better plan is just to download and install from isc.org.
+
+Make sure you run B<make test> after make install, even if
+only to be so impressed by their professionalism.
+

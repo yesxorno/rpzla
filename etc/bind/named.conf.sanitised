@@ -1,0 +1,153 @@
+
+/*
+ * Sanitised named.conf with RPZ configuration
+ */
+
+// the people that we will serve
+acl internals 
+{
+	127.0.0.0/8;
+	192.168.0.0/16;
+	192.28.16.0/24;
+	192.28.18.0/24;
+};
+
+acl maytransfer
+{
+	// other local recursive resolvers to pull the RPZ data 
+	192.28.18.21;
+	192.28.18.22;
+	127.0.0.1;
+};
+
+// some arsehole definitions (we dont expect these to ever be used)
+// See options.  We blackhole them.
+acl bogusnets 
+{
+	0.0.0.0/8;
+	1.0.0.0/8;
+	2.0.0.0/8;
+	192.0.2.0/24;
+	224.0.0.0/3;
+};
+
+logging 
+{
+        channel general
+	{
+                file "data/named.log";
+                severity info;
+		print-severity yes;
+		print-time yes;
+		print-category yes;
+        };
+	/* 
+	 * we need a query log to be parsed for data transfer to the 
+	 * query database for use by the analysis web site
+	 *
+	 * restrict size according to your limits
+	 */
+        channel query_log
+	{
+                file "data/named.log.query" versions 1 size 10m;
+                severity info;
+		print-severity yes;
+		print-time yes;
+		print-category yes;
+        };
+	category default
+	{
+		general;
+	};
+	category queries
+	{
+		query_log;
+	};
+};
+
+options 
+{
+	allow-transfer { maytransfer; };
+	allow-recursion { internals; };
+	allow-query-cache { internals; };
+	allow-query     { internals; };
+
+	listen-on port 53 { any; };
+	// listen-on-v6 port 53 { ::1; };
+
+	// Where to we read or write
+	directory 	"/usr/local/var/named";
+	dump-file 	"/usr/local/var/named/data/cache_dump.db";
+        statistics-file "/usr/local/var/named/data/named_stats.txt";
+        memstatistics-file "/usr/local/var/named/data/named_mem_stats.txt";
+
+	// no version info
+	version "None of your business";
+
+	// Those options should be used carefully because they disable port
+	// randomization
+	// query-source    port 53;	
+	// query-source-v6 port 53;
+
+	// nix the arseholes
+	blackhole { bogusnets; };
+
+	// DNS SEC things
+	dnssec-validation auto;
+	dnssec-lookaside auto;
+
+	// RPZ
+	response-policy
+	{
+		zone "rpz.you.tld" policy CNAME dns-blacklist.you.tld;
+		zone "rpz.your-rpz-provider.tld" policy CNAME dns-blacklist.you.tld;
+	};
+};
+
+// The minimal set of zones (root hints, and localhost)
+zone "." in
+{
+	type hint;
+	file "named.ca";
+};
+
+zone "localhost" in
+{
+	type master;
+	file "localhost.zone";
+	allow-query { any; };
+};
+
+zone "0.0.127.in-addr.arpa" in
+{
+	type master;
+	file "named.local";
+	allow-query { any; };
+};
+
+/*
+ *  RPZ definitions
+ */
+
+// Our locally defined nasties
+zone "rpz.you.tld" in
+{
+	type master;
+	file "rpz.you.tld.zone";
+	allow-query { any; };
+};
+
+// What provider will do
+zone "rpz.your-rpz-provider.tld" in
+{
+	type slave;
+	file "rpz.your-rpz-provider.tld.zone";
+	// pull from rpz.your-rpz-provider.tld
+	masters { 1.2.3.4; 3.4.5.6; };
+	// they tell when to pull
+	allow-notify { 1.2.3.4; 3.4.5.6; };
+	// we like incremental transfers
+	//request-ixfr yes; (unknown option now)
+	allow-query { internals; };
+};
+

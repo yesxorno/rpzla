@@ -1,0 +1,14 @@
+
+=head1 Documentation
+
+=head2 Overview
+
+This directory contains general documentation.
+
+The 'developer' sub-directory contains probably out-of-date information
+based on the problem description and probably solution stratetegy.
+
+Things change.
+
+The CAPITAL LETTER documentation in this directory is official
+and should be correct (i.e please complain if not).

@@ -1,0 +1,48 @@
+
+Improved DB Security
+--------------------
+
+Better to have two user type:  can write (cant read), can read (cant write)
+
+* loggers needs write
+* analysis needs read
+
+Data log scrapers
+-----------------
+
+They should start with a database connection so that if this
+fails it is known at the 'service start' point.
+
+They *must* use the system log.
+
+Reporting
+---------
+
+Need to have a defined set of standard queries (view
+definitions) for:
+
+- who is a dumb user (lots of Web logs corresponding to 
+  DNS logs)
+- who is infected (lots of DNS logs, with little correspoding
+  Web logs)
+- Who is both infected and dumb (lots of both logs, but
+  little correlation between many DNS logs and a Web log)
+
+Reporting:  Ideas
+``````````````````
+
+Within a period of time select ip_address, count(*) (group by)
+so you have the number of times for the IP address (for each
+table).
+
+Then you need the ones that match (dumb user) and the ones
+that dont (the difference) ie. infected, correlated in time.
+
+(more to it ...)
+
+
+Putting it all together
+-----------------------
+
+A web-site that shows the analysis.  Download reports in
+standardised form.

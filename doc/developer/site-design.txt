@@ -1,0 +1,66 @@
+
+Site Design
+
+
+--------------------------------------------------------------------------
+|
+|  Logo
+|
+--------------------------------------------------------------------------
+| Home | Help                   Search [ IP / client (table view)] [Clear]
+--------------------------------------------------------------------------
+|(*)Correlate () DNS | (*) Graph () Table | () Day (*) Week () Month 
+--------------------------------------------------------------------------
+|  				[Load]
+--------------------------------------------------------------------------
+|
+| 	Data
+| 
+--------------------------------------------------------------------------
+|  Footer (Powered by Your computer, the server and software))  [Credits]
+--------------------------------------------------------------------------
+
+Paths: all is based on session data (cor|dns, graph|table, day|week|mon)
+
+/
+
+/we-dont-do-that  the 404 handler
+
+Thus: 
+
+->type = home | help | dns | cor | credits
+->present = '' | *graph | table
+->period = '' | day | *week | month
+
+
+Page display logic
+------------------
+
+get '/help' ... /credits ... sub => {
+	# handle with standard router methods
+}
+
+get '/' sub => {
+	if ( form_data_blank() )
+	{
+		set_form_defaults()
+	}
+	show_home();
+}
+
+get '/data' => sub {
+	form_choice = read_form()
+	if ( form_no_sense(form_choice) )
+	{
+		404
+	}
+	else
+	{
+		data = get_data(form_choice)
+	}
+	render(data)
+}
+
+KEY: there is one big 'form' with DNS/Cor, Graph/Table, Day/Week/Mon
+so that those values are available on a page load.
+

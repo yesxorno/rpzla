@@ -1,0 +1,36 @@
+
+Logging
+-------
+
+Both the RPZ responses from the resolvers and the web site
+responses from the walled garden need to be logged in a
+parsable format.
+
+From these logs need to be extracted sufficient information
+to correlate these logs in time and to identify the client
+system who requested the resolution or page.
+
+The log data needs to be moved from the resolver(s) and 
+web server to a central location for analysis and inspection.
+
+Analysis / Inspection
+---------------------
+
+One must be able to find answers to the following questions:
+
+Each question may be made w.r.t DNS only or Correlated (DNS +
+web site):
+
+* what trends over time are shown for all bad requests for
+  all resolvers
+* during a specifiable period of time list the clients that
+  have made some bad requests (orderable by the number made,
+  or the client identifier)
+
+'Niceness'
+----------
+
+Trends should be displayed as a graph.
+
+The 'specifiable' time queries should have easy options for
+last day, week, month and current calendar week and month.

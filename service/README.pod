@@ -1,0 +1,25 @@
+
+=head1 Service Scripts
+
+This area contains the service start/stop scripts (/etc/rc.d/init.d)
+for the bind and walled garden log scrappers.
+
+The scripts here are will workin the RedHat/CentOS/Fedora ecosystems.
+
+Install what you wish with:
+
+	make bind
+
+or
+
+	make garden
+
+The service scripts will be installed and set to auto-start/stop.
+
+=head2 Timing
+
+A key point is to get the order of start and stop corrrect.  The
+scrapper should start just before the relevant service (i.e BIND
+or Apache) and stop just after it so that we are sure that all 
+data is included.  This varies across operating systems and 
+distributions.

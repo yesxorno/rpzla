@@ -1,0 +1,8 @@
+# process runs under limited privileges
+USER="-u named"
+# We only do IPv4
+# IP="-4"
+# Config file is at
+CONFIG="-c /usr/local/etc/named.conf"
+# Putting it all together (used by the init.d start script)
+OPTIONS="$USER $IP $CONFIG"

@@ -1,0 +1,19 @@
+
+For the log format for the 'walled garden' web-site
+see rpz-log-apache-filter.pl -m  (it describes the requirments).
+
+Here's a Virtual Host for the Analysis website:
+
+<VirtualHost *:80>
+        ServerName rpzla.youdomain.tld
+        ServerAdmin webmaster@localhost
+        DocumentRoot /var/www/html/rpzla.youdomain.tld
+        LogLevel info
+        AddHandler cgi-script .cgi
+        Options +ExecCGI
+        ScriptAlias / /var/www/html/rpzla.youdomain.tld/rpzla.cgi/
+	IndexIgnore *
+        ErrorLog logs/rpzla.youdomain.tld-error_log
+        CustomLog logs/rpzla.youdomain.tld-access_log common
+</VirtualHost>
+

@@ -1,0 +1,53 @@
+
+=head1 Introduction
+
+DNS Response Policy Zones (RPZ) are a way to use reputational
+data for DNS in much the same way as RBL for mail (spam).
+
+Within a BIND 9.8 (or later) resolver one can integrate/define
+a collection of zones that contain records for 'suspicious'
+sites (e.g malware deliverers).  One can then choose what response
+to deliver instead of a normal full recursion.
+
+The response types are NXDOMAIN (no such domain) and a constant
+CNAME which would point to a warning site.  This second method
+is known as a 'walled garden' in the RPZ literature.
+
+The walled garden approach is that which we wish to use.
+
+This software collection supports the logging and analysis of
+data gathered from the resolver(s) and the walled garden web
+site.
+
+=head2 Use Cases
+
+=over
+
+=item Spam / Malware
+
+A person receives an email message with a link to a malware
+delivery site which is known to the RPZ.  The user clicks 
+on the link.  The resolver returns the walled garden CNAME
+(and logs it) the browser visites the walled garden (and
+the web site logs that).
+
+=item Malware
+
+Some piece of malware uses the resolver to resolve a site
+known to RPZ.  The malware then attempts to interact with
+the site for its own purposes.  The resolver will log the
+resolution of the RPZ known site.  The web site may a) be 
+visited using HTTP or b) not (depends on what the malware
+does -- unknown).
+
+=back
+
+=head2 Analysis
+
+Cases 1. and 2. a) are indistiguishable and are marked by
+a correlation between the resolution log and a web site
+visit.  This indicates that either the person using a
+computer needs more education about clicking links in 
+suspicious mail, or that their system is infected.
+
+Case 2. b) indicates an infection in the computer.

@@ -1,0 +1,97 @@
+#!/bin/bash
+#
+### BEGIN INIT INFO
+# Provides: RPZLA Log scraper for BIND
+# Short-Description: Watch RPZ queries in BIND logs and ship them to a DB
+# Description: Watch RPZ queries in BIND logs and ship them to a DB
+### END INIT INFO
+
+# chkconfig: 235 59 31
+# config: /etc/rpzla/rpzla.conf (not used by this script)
+
+# Source function library.
+. /etc/init.d/functions
+
+NAME="rpzla-bind"
+DAEMON="/usr/local/bin/rpzla-bind.pl"
+LOCKFILE="/var/lock/subsys/rpzla-bind.pl"
+CONFIG="/etc/rpzla/rpzla.conf"
+
+#
+# Set default options.  Override the defaults and define 
+# custom options in /etc/sysconfig/named
+#
+
+start() {
+	if [ -x "$DAEMON" ]
+	then
+		echo -n $"Starting $NAME: "
+		if [ $UID -ne 0 ]; then
+			RETVAL=4
+		else
+			$DAEMON -c $CONFIG
+			RETVAL=$?
+			[ $RETVAL -eq 0 ] && touch $LOCKFILE
+		fi
+	else
+		RETVAL=1
+	fi
+	if [ 0 -eq $RETVAL ]
+	then
+		success
+	else
+		failure
+	fi
+	return $RETVAL
+}
+
+stop() {
+	echo -n $"Shutting down $NAME: "
+	if [ $UID -ne 0 ]; then
+                RETVAL=4
+        else
+        	killproc 'rpzla-bind.pl'
+		RETVAL=$?
+	        [ $RETVAL -eq 0 ] && rm -f $LOCKFILE
+        fi
+	if [ 0 -eq $RETVAL ]
+	then
+		success
+	else
+		failure
+	fi
+	return $RETVAL
+}
+
+restart() {
+	stop
+	start
+}
+
+RETVAL=0
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+	status named
+	;;
+  restart|reload)
+	restart
+	;;
+  condrestart)
+	if status named > /dev/null; then
+	    stop
+	    start
+	fi
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|reload}"
+	exit 2
+esac
+
+exit $?

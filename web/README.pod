@@ -1,0 +1,11 @@
+
+=head1 Web Sites
+
+=head2 Overview
+
+RPZLA needs two web site, the 'Walled Garden' which must be a 
+default site enabling it to respond to any domain name, and the 
+Analysis Site allowing administrative personnel to examine the
+RPZLA data.
+
+

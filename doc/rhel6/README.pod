@@ -1,0 +1,279 @@
+
+=head1 Deployment for RHEL6 x86_64
+
+RHEL6 x86_64 was the test OS for RPZLA.  Here are collected the specific,
+tested instructions for deployment on that platform.
+
+This takes a long time.  Sorry.
+
+You'll be editing various files.  When it says 'vi file' that means
+'favourite-editor file' ;-)
+
+=head2 Start Point
+
+The basis was a RHEL6 install that was minimal.  There are certain
+required tools:
+
+* development tools (e.g gcc)
+* web fetch tools (e.g wget, git)
+* basic utilities (file, ...)
+* various Perl Libraries (Config::General, ...)
+
+It is expected that the reader possess the skills to installed missing
+basic components as needed (e.g yum install git).  Adding non-repository
+available Perl libraries with 'perl -MCPAN -e shell' can be confusing 
+for the first time.  Patience.
+
+=head2 Trail Installation
+
+One system as all (BIND, Apache as both Walled Garden and Analysis).
+
+=head3 Get the Git repository
+
+	git clone https://YOU@github.com/YOU/rpzla.git
+
+or whatever works for YOU.  Github provide excellent help 
+B<http://help.github.com/>
+
+=head2 Install BIND
+
+Use you own package management system.  If that doesn't work and you're 
+using RHEL6 you can use the bind-install/rhel6 diretory.  
+
+=head3 The PREFIX
+
+This installs to B</usr/local>.  E.g config at /usr/local/etc/, main
+data are /usr/local/var/named, ...
+
+=head3 The Install Process
+
+First you'll need a few dependencies:
+
+	sudo yum -y install openssl-devel
+
+Then, build bind:
+
+	sudo make bind
+
+This takes TIME.  Be patient.  The process is to download BIND from 
+ISC, unpack, configure, build, allow full testing (changes your networking
+setup), do full tests and then install.
+
+The BIND package is a superlative example of professionalism.  Be patient
+whilst it runs 'test'.
+
+There is one key piece missing from this and that is comparing the download
+to the published check sums of the download.  If you are suitably paranoid,
+read the Makefile and fun it all manually. (See note about 'using your
+native package tool' by preference).
+
+=head3 Install the basic zone files
+
+This is just the localhost and localdomain zonefile data that every
+resolver should have.  Add more of your local zones as needed.
+
+	make zone-data
+
+=head3 Install the config (named.conf) and check it
+
+Install with (from rplza/bind-install/rhel6):
+
+	make etc
+
+Edit B<named.conf> and make sure it is what you need.  What is supplied
+(the default) will almost B<certainly> not work for you.  Edit and fix.
+
+=head3 Configure BIND Service
+
+After the install of BIND, we wish for it to be a locally configured
+service.  In rpzla/bind-install/rhel6:
+
+	make service
+
+This will install service scripts and auto-configure start/stop of the
+'named' service.
+
+Test:
+
+	service named start
+
+You will likely have an error that says "User named does not exist".
+Fix by creating the user (this is a little RHEL specific with the -n flag):
+
+	useradd -n -s /bin/false -g nobody named
+
+ie. create a user 'named' with no operational shell, and a default 
+group providing no useful privileges.
+
+	service named start
+	service named stop
+
+works?
+
+=head3 Test 'rndc reload'
+
+You should be able to issue:
+
+	rndc reload
+
+If not, why?  
+
+=head3 Test Basic BIND Resolver Operation
+
+Does it work:
+
+	service named start
+	dig @127.0.0.1 isc.org
+
+Make sure basic resolver funcationality is working before continuing.
+
+Its is a good idea to allow at least on external test 'client'.  i.e
+someone other than the resolver itself can perform resolution tests.
+
+=head3 Getting RPZ working
+
+The B<named.conf> file defines your RPZ definitions.  The basic config
+supplied in the RPZLA area only defines a locally defined 'nasty' 
+web domain called 'nastynasty.com'.  Check your named.conf, possibly
+edit the definition to add more entries and test.
+
+	dig @127.0.0.1 nastynasty.com
+
+Again, its a good idea to test from an 'external' client.
+
+=head2 Create the Config
+
+From now on, we'll be installing data systems, and web systems
+that rely on the database itself.  We set up the config file will
+all required config first, and install it for use by the install
+tools.
+
+You need to specify every element of the config.  From the rpzla/
+directory:
+
+	vi etc/rpzla.conf
+	# specify all the elements.  The example config comes with
+	# description.  PLEASE change the passwords.
+
+Install it:
+
+	make etc
+
+=head2 Installing PostgreSQL and Establishing the Database
+
+For ease of careful rights management (better security) we wish
+for PostgreSQL 9.0 or later.  PostgreSQL are packaging their own
+distributions.  See L<http://yum.postgresql.org/repopackages.php>
+Install the 9.1 (or whatever is the most recent) repository. E.g
+
+	wget yum.postgresql.org/9.1/redhat/rhel-6-x86_64/pgdg-centos91-9.1-4.noarch.rpm
+	rpm -Uvh pgdg-centos91-9.1-4.noarch.rpm
+
+We then do a 'group install':
+
+	yum groupinstall "PostgreSQL Database Server PGDG"
+
+There is a nice guide for install and what comes after provided
+at L<yum.postgresql.org/files/PostgreSQL-RPM-Installation-PGDG.pdf>
+
+So, off we go:
+
+	# init the cluster
+	service postgresql-9.1 initdb
+	# auto start
+	chkconfig postgresql-9.1 on
+	# check
+	chkconfig --list postgresql-9.1 
+	# postgresql-9.1 0:off	1:off	2:on	3:on	4:on	5:on	6:off
+	# Ok
+	# Start
+	service postgresql-9.1 start
+	# Change / Set default super-user password
+	su - postrgres
+	psql
+	postgres# ALTER USER Postgres WITH PASSWORD '<newpassword>';
+	postgres# \q
+	# Note first sub-dir name varies with version, of course ...
+	vi 9.1/data/pg_hba.conf # change credential access (I like 'md5')
+	vi 9.1/data/postgresql.conf # change listen_address = '*' (if needed)
+	exit
+	service postgresql restart
+	psql postgres postgres
+	Password: *******
+	postresql# \q
+	# Ok
+	netstat -tapn | grep 5432
+	# tcp 0 0 127.0.0.1:5432 0.0.0.0:* LISTEN  1234/postmaster    
+	# tcp 0 0 ::1:5432       :::*      LISTEN  1234/postmaster
+	# Looks good
+
+
+Dont forget firewall rule changes if you're going to accept network 
+connections and you're re-using this instruction when deploying for
+production.  Test local and/or external connectivity etc..
+
+=head3 Create RPZLA Schema, Database, Objects and Roles
+
+Choose your database name and user accounts (matching those specified 
+in your rpzla.conf file):
+
+	psql postgres postgres
+	Password: ******
+	postgres# create database rpzla; 
+
+Create Schema:
+
+	psql rpzla postgres
+	Password: ****
+	rpzla# create schema rpzla_schema;
+	CREATE SCHEMA
+	rpzla# \q
+
+Create Tables and Views:
+
+	cd db/postgres
+	./create_structures.pl
+	Password: ******
+	CREATE TABLE
+	 .
+	 .
+	 .
+
+Create roles and assign privileges based on schemas ...:
+
+	psql rpzla postgres
+	Password: ****
+	rpzla# create user rpzla_analysis with password 'your-password';
+	CREATE USER
+	rpzla# grant USAGE on SCHEMA rpzla_schema to rpzla_analysis;
+	GRANT
+	rpzla# grant SELECT on ALL TABLES IN SCHEMA rpzla_schema to rpzla_analysis;
+	GRANT
+	rpzla# ALTER DEFAULT PRIVILEGES IN SCHEMA rpzla_schema 
+	   GRANT SELECT ON TABLES TO rpzla_analysis;
+	ALTER DEFAULT PRIVILEGES
+	rpzla# create user rpzla_log with password 'your-other-password';
+	CREATE USER
+	rpzla# grant USAGE on SCHEMA rpzla_schema to rpzla_analysis;
+	GRANT
+	rpzla# grant INSERT on ALL TABLES IN SCHEMA rpzla_schema to rpzla_log;
+	GRANT
+	rpzla# grant INSERT on ALL SEQUENCES IN SCHEMA rpzla_schema to rpzla_log;
+	GRANT
+	rpzla# ALTER DEFAULT PRIVILEGES IN SCHEMA rpzla_schema 
+	   GRANT INSERT ON TABLES TO rpzla_log;
+	ALTER DEFAULT PRIVILEGES
+	rpzla# ALTER DEFAULT PRIVILEGES IN SCHEMA rpzla_schema 
+	   GRANT INSERT ON SEQUENCES TO rpzla_log;
+	ALTER DEFAULT PRIVILEGES
+	rpzla# \q
+	# Phew ...
+
+There is a big GOTCHA here.  By default the "show me the tables" command
+'\dt' will show you tables from the B<public> profile, which we're not 
+using.  So, you wont see the rpzla tables.  Instead you need to specify
+the schema from which to display: '\dt rpzla_schema.*'  Confused me for 
+a while.  RTM etc. ;-)
+
+
+

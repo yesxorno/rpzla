@@ -1,0 +1,99 @@
+#!/bin/bash
+#
+### BEGIN INIT INFO
+# Provides: named
+# Short-Description: DNS services
+# Description: This is a daemon is your BIND name server (and/or resolver)
+### END INIT INFO
+
+# chkconfig: 235 60 30
+# config: /etc/sysconfig/named
+
+# Source function library.
+. /etc/init.d/functions
+
+DAEMON="/usr/local/sbin/named"
+LOCKFILE=/var/lock/subsys/named
+
+#
+# Set default options.  Override the defaults and define 
+# custom options in /etc/sysconfig/named
+#
+CONFIG="/etc/sysconfig/named"
+[ -f "$CONFIG" ] && . "$CONFIG"
+# If no options defined, set these (default)
+OPTIONS=${OPTIONS:='-4 -c /etc/named.conf -u named'}
+
+start() {
+	if [ -x "$DAEMON" ]
+	then
+		echo -n $"Starting named: "
+		if [ $UID -ne 0 ]; then
+			RETVAL=4
+		else
+			$DAEMON $OPTIONS
+			RETVAL=$?
+			[ $RETVAL -eq 0 ] && touch $LOCKFILE
+		fi
+	else
+		RETVAL=1
+	fi
+	if [ 0 -eq $RETVAL ]
+	then
+		success
+	else
+		failure
+	fi
+	return $RETVAL
+}
+
+stop() {
+	echo -n $"Shutting down named: "
+	if [ $UID -ne 0 ]; then
+                RETVAL=4
+        else
+        	killproc named
+		RETVAL=$?
+	        [ $RETVAL -eq 0 ] && rm -f $LOCKFILE
+        fi
+	if [ 0 -eq $RETVAL ]
+	then
+		success
+	else
+		failure
+	fi
+	return $RETVAL
+}
+
+restart() {
+	stop
+	start
+}
+
+RETVAL=0
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+	status named
+	;;
+  restart|reload)
+	restart
+	;;
+  condrestart)
+	if status named > /dev/null; then
+	    stop
+	    start
+	fi
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|reload}"
+	exit 2
+esac
+
+exit $?

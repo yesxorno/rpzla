@@ -1,0 +1,120 @@
+
+=head1 Deployment Guidelines
+
+=head2 Overview
+
+RPZLA involves:
+
+=over
+
+=item *
+
+learning about using RPZ in BIND
+
+=item *
+
+modifying at least one resolver to use RPZ
+
+=item *
+
+creating a web server with a default site to act as the Walled Garden
+'Warning Site'
+
+=item *
+
+creating a database into which logs from the resolvers and Walled Garden
+are stored
+
+=item *
+
+creating an 'Analysis' site at which the gathered data can be viewed
+and analysed
+
+=back
+
+=head2 Recommendations
+
+All of these systems can be hosted on one single server, either physical
+or virtual.  It is recommended that this path of a single server is used
+to familiarise oneself with the components and associated difficulties of
+establishing the facility.
+
+Once that is achieve, one is then confident enough to deploy across your
+organisation.
+
+=head3 Trial
+
+On a single system:
+
+=over
+
+=item *
+
+Install BIND, Apache and PostgreSQL
+
+=item *
+
+Install the RPZLA components, including sample data
+
+=item *
+
+Test the sample data
+
+=item *
+
+Add a local rule for an rpz 'nasty' site
+
+=item *
+
+hit it by using using a resolver client (e.g dig) and 
+a web browser against your locally defined 'nasty' domain
+
+=back
+
+=head3 Full Deployment
+
+Order is important here, to minimise operational downtime:
+
+=over
+
+=item *
+
+Create the production database.  Enable all 'clients' to be 
+able to contact it (i.e all resolvers and the Walled Garden).  Test
+connectivity.
+
+=item * 
+
+Create the Analysis site with sample data.  Check that it is 
+accessible.
+
+=item * 
+
+Create the Walled Garden site with appropriate content for your
+organisation, and log scrapper running.  Test it, and ensure that its 
+log data is being delivered to the database, and thus viewable from 
+the Analysis site.
+
+=item *
+
+Perform a complete re-install of the the 'testing' system you used
+in the trial to be just a resolver.  Configure it to use the production
+database.  Test it with DNS queries and web browser interaction for
+your locally configured 'nasty' domain.  Verify that these records
+are viewable at the Analysis site.
+
+=item *
+
+(Optional) remove the locally defined 'nasty' domain.
+
+=item *
+
+Roll out the new resolver, and their data scrappers across all 
+of your published resolvers.
+
+=item *
+
+Decommission the testing / trial system (now only acting as a non-published
+resolver).
+
+=back

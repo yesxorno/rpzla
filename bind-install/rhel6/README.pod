@@ -1,0 +1,27 @@
+
+=head1 Installing BIND on RHEL6
+
+This really is silly.  BIND 9.9.0 is not yet available as an
+RPM on RHEL6.  This little area is a substitute for that.
+
+It is expected to be outdated in a few weeks.
+
+Its all make:
+
+=over
+
+=item *
+
+make bind # installs bind
+
+=item *
+
+make rpz # installs a test rpz file
+
+=item *
+
+make etc  # installs a template config (etc/named.conf)
+
+=back
+
+Not much doco here, as it is expected to be unneeded very soon.

@@ -1,0 +1,16 @@
+1;00:01:01;1.2.3.4;host1.org;1.nasty.com
+1;00:01:31;1.2.3.5;host2.org;2.nasty.com
+4;00:01:01;1.2.3.4;host1.org;1.nasty.com
+4;00:01:31;1.2.3.5;host2.org;2.nasty.com
+4;00:02:01;1.2.3.4;host1.org;1.nasty.com
+4;00:02:31;1.2.3.5;host2.org;2.nasty.com
+5;00:01:01;1.2.3.4;host1.org;1.nasty.com
+5;00:01:31;1.2.3.5;host2.org;3.nasty.com
+5;00:02:01;1.2.3.4;host1.org;1.nasty.com
+5;00:02:31;1.2.3.5;host2.org;3.nasty.com
+6;00:00:11;1.2.3.6;host3.org;4.nasty.com
+6;00:00:21;1.2.3.6;host3.org;4.nasty.com
+6;00:00:31;1.2.3.6;host3.org;4.nasty.com
+6;00:00:41;1.2.3.6;host3.org;4.nasty.com
+6;00:00:51;1.2.3.6;host3.org;4.nasty.com
+6;00:01:01;1.2.3.6;host3.org;4.nasty.com
