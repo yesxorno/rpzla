@@ -25,7 +25,7 @@ even ready for assessment.
 
 The first alpha release is expectecd in June/July 2012.
 
-=head2 HOW TO
+=head2 Documentation
 
 Documentation for the project is in Perl based 'pod' files.
 They are located in the source code tree where they are 
@@ -40,6 +40,14 @@ Wiki's may come. The current focus is that if you
 download the repository onto a potentially command line
 only server, and you still have the doco there in easily readable
 form.  That is the Perl thing: pod == Plain Old Documentation
+
+=head3 How To
+
+See Skills below.  This is a project in development.  In a production
+environment it likely involves 3+ sub-systems; all need to be 
+configured and the required supporting technology may require
+manual install (download, build, deploy, configure, use) as it 
+may not have yet hit 'standard package' delivery.
 
 =head2 Funding and Sponsorship
 
@@ -185,7 +193,7 @@ the analysis web site which queries that RDBMS and displays data as wished for b
 
 =back
 
-=head2 Skillsets 
+=head2 Skills
 
 =head3 For Deployment
 
