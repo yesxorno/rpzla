@@ -1,6 +1,10 @@
 
 =head1 Installation Instructions
 
+Occassionally, some challenges are discussed, and the solutions
+to them are based on RHEL distros.  These are rare, but do not
+cover other *NIX distros.
+
 =head2 Overview
 
 You need:
@@ -64,62 +68,44 @@ to your Walled Garden
 
 RPZLA currently only supports PostgreSQL (but adding support for
 other databases should be easy, contact the community).  Here we
-create a database and user access.  Note that if you need for 
+create a database and user access.  Note that you need for 
 your analysis web site to be able to query this database.  Hence,
 you may need to modify PostreSQL's security and/or Firewalls to 
 allow this.  How to do that is beyond the scope of this presentation.
 
-Creating a PostreSQL database and user looks like:
-
-	someone$ su - postgres
-	postgre$ psql postgres
-	Password: *******
-	postgres=# create user rpzla with password 'your-choice';
-	CREATE ROLE
-	postgres=# create database rpzla;
-	CREATE DATABASE
-	postgres=# grant all privileges on database rpzla to rpzla;
-	GRANT
-	postgres=# \q
-
-Internal comment:
-
-This is bad security.  We're running as 'god' and thus create the 
-structure.  We then need two users, 'rpzla_logger' that can INSERT
-data into the two key tables, and a user 'rpzla_analysis' that can
-SELECT data from all structures.  No more God behviour.  Indeed,
-the logger should be separated into 'rpzla_log_dns' and 'rpzla_log_web'
-with INSERT rights limited to the specific tables needed.  This is
-a bit more annoying as we need to have differing rpzla.conf's on
-different systems  ... (encode the separation into the config?  Yes.)
-We could even separate for each resolver, but that's just paranoia
-(if attacker has hacked on resolver, they should easily be able to
-hack them all).
-
-FIX!!
+RPZLA uses a least privilege model.  The Loggers need to insert
+data, and the Analysis site needs to query it.  Thus, there 
+are two 'users' each given only the privileges required for 
+their purpose.  The config for the 'log' type user is needed on
+all resolvers, and the walled garden.  The 'analysis' type user
+is needed on the analysis site.
 
 =head3 Set the credentials in the config file and install it
 
-	 vi etc/rpzla.conf # minimally set the database connection details
-	 sudo make install
+	 cd ./etc/
+	 vi rpzla.conf # set the credential for 'log' and 'analysis'
+	 sudo make install # copies rpzla.conf to /etc/rpzla
 
-=head3 Create the tables and views
+=head3 Create the Tables and Views, and Uploading Sample Data
 
-	 cd db/postgres
-	 # db credentials are gathered from the previously installed 
-	 # rpzla.conf
-	 ./create_structures.pl 
-	
-=head3 Uploading Sample Data
+See the doco in rpzla/db/postrgresql/README.pod
 
-If you want to view the site with sample data before configuring
-your resolvers and walled garden (good idea, testing):
+Summary:
 
-	 cd db/postrgres
-	 # again db creds from rpzla.conf
-	 ./upload-sample-data.sh
+	cd db/postgresql
+	sudo ./db_all.sh
+
+If the system on which you have just created the database is only
+the database server (no resolvers or web sites (walled garden or
+analysis)) you can then actually delete the config:
+
+	rm /etc/rpzla/rpzla.conf ; rmdir /etc/rpzla
 
 =head2 Creating the Analysis Site
+
+B<NOTE>: The RPZLA Analysis site does not currently do any authentication
+based restrictions.  Implement as you wish with Apache (LDAP, .htaccess,
+etc.).
 
 On the web server:
 
@@ -163,8 +149,8 @@ Done.
 
 Edit the Apache config to define the virtual host.
 
-Change ServerName, ServerAdmin, ScriptAlias, and *Log values 
-to suite your environment:
+Change ServerName, ServerAdmin, DocumentRoot, ScriptAlias, and 
+*Log values to suite your environment:
 
 	<VirtualHost *:80>
 		# Edit these to suit your deployment
@@ -180,7 +166,8 @@ to suite your environment:
 		IndexIgnore *
 	</VirtualHost>
 
-Then, adjust the install location in the Makefile and install:
+Then, adjust the install location in the Makefile and install
+the Analysis site code:
 
 	 cd web/analyse
 	 vi Makefile   # set the CGI_DIR to be the document root for the site
@@ -203,7 +190,7 @@ analysis web-site.
 
 =head2 Creating the Walled Garden (Warning Site)
 
-The Walled Garden must be a default virtual site on an Apache server.
+The Walled Garden must be a B<default virtual sit>e on an Apache server.
 
 RPZLA comes with a customisable Walled Garden, but you can do whatever
 you want.  The key element is the way you log visits to the site which
@@ -224,48 +211,72 @@ The RPZLA template does not have this type of functionality yet. :-(
 =head3 Log Format
 
 Whatever you do, the format of the Apache Log is essential.  It must
-be defined, and then used in the site definition.
+be defined, and then used in the site definition.  No choice here.
 
 =head4 Define the Log Format
 
-In the Apache config:
+In the Apache config, generally in the area where all the alternate
+log styles are defined, add:
 
 	LogFormat "%{%d-%b-%Y %T}t %a %h %V %>s \"%r\"" rpz_log
 
 The name 'rpz_log' can be whatever you want.  But, you must use
-it in the WalledGarden's definition.
+it in the WalledGarden's definition.  The format string is B<fixed>.
 
 =head4 Walled Garden Log type Definition
 
 Within the definition of the Walled Garden site it must declare
 that it will use the previously defined log format:
 
-	CustomLog logs/<some-path> rpz_log
+	CustomLog <some-path> rpz_log
 
-The <some-path> string must be described in the rpzla.conf so that
-the log scraper knows which file it must watch.
+The <some-path> resolves to a full system path.  For example,
+on RHEL logs/walled_garden-access_log resolves to:
 
-E.g Log Format --> WG Site Defn --> Scrapper --> Database --> Analysis Site
+	/var/log/httpd/walled_garden-access_log
+
+The this full path (whatever it is on your system) must be defined 
+in the rpzla.conf so that the log scraper knows which file it must watch.
+
+E.g in the /etc/rpzla/rpzla.conf file:
+
+	<walled-garden>
+		log	=	/var/log/httpd/walled_garden-access_log
+	</walled-garden>
+
+The flow is: define the format, use it in the Walled Garden site
+definition, tell the Log Scrapper where it is, the data ends up
+in the RDBMS, and they you can see it on the Analysis site.
 
 =head2 Setting up Log Scrappers
 
-In all cases (BIND and Apache scrapers) you must first install the 
-perl Daemon::Daemonize library.
+B<NOTE>: The init scripts are untested.  Work to be done.
+
+In all cases (BIND and Apache scrapers) you the perl Daemon::Daemonize 
+library must be available.  If not, install from CPAN:
 
 	perl -MCPAN -e shell
 	cpan> install Daemon::Daemonize
 	...
 	cpan> quit
 
+=head3
+
+Have a look at the README.pod in the rpzla/etc.  You'll be removing
+un-needed info from the rpzla.conf file during each install of a logger.
 
 =head3 BIND Scrappers
 
 For each resolver:
 
-	make loggger
+	make bind
+
+Note: This does not make BIND, just the RPZLA BIND log scrapper.
 
 =head3 Apache (Walled Garden) Scrapper
 
 On the Walled Garden system:
 
-	make logger
+	make apache
+
+Note: This does not make Apache, just the RPZLA Apache log scrapper.

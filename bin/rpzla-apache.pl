@@ -69,6 +69,11 @@ sub make_cmd($)
 {
 	my $conf = shift;
 	my $log = $conf->{'walled-garden'}{log};
+	if ( ! -r $log )
+	{
+		err("Log to watch '$log' does not exist or is unreadable");
+		exit(1);
+	}
 	return "rpzla-apache-filter.pl -f $log | " .
 		"rpzla-apache-to-db.pl -c " .  $options{OPT_CONFIG()}
 }

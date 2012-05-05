@@ -1,0 +1,88 @@
+#!/bin/bash
+#
+# rpzla-bind	This shell script takes care of starting and stopping
+#		the RPZLA BIND RPZ Log scrapper
+#
+# chkconfig: - 58 74
+# description: 		Push BIND RPZ resolution data to a central database.
+#			See github.com/yesxorno/rpzla
+
+### BEGIN INIT INFO
+# Provides: rpzla-bind
+# Required-Start: $network
+# Required-Stop: $network
+# Should-Start: $syslog rpzla-bind
+# Should-Stop: $syslog rpzla-bind
+# Short-Description: start and stop rpzla-bind
+# Description: rpzla-bind watches the configured BIND log for resolutions
+#		that invoke RPZ responses and ships those records to a 
+#		central DB.
+#              
+### END INIT INFO
+
+# Source function library.
+. /etc/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+
+DIR=/usr/local/bin
+name='rpzla-bind'
+process='rpzla-bind.pl'
+program=$DIR/$process
+lockfile=/var/lock/subsys/$name
+
+start() {
+	[ "$EUID" != "0" ] && exit 4
+	[ "$NETWORKING" = "no" ] && exit 1
+	[ -x $program ] || exit 5
+	[ -r /etc/rpzla/rpzla.conf ] || exit 6
+
+	# Start daemon.
+	echo -n $"Starting $name: "
+	daemon $program
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ] && touch $lockfile
+	return $RETVAL
+}
+
+stop() {
+	[ "$EUID" != "0" ] && exit 4
+        echo -n $"Shutting down $name: "
+	killproc ${process}
+	RETVAL=$?
+        echo
+	[ $RETVAL -eq 0 ] && rm -f $lockfile
+	return $RETVAL
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+	status $process
+	;;
+  restart|force-reload)
+	stop
+	start
+	;;
+  try-restart|condrestart)
+	if status $process > /dev/null; then
+	    stop
+	    start
+	fi
+	;;
+  reload)
+	exit 3
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|try-restart|force-reload}"
+	exit 2
+esac

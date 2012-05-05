@@ -70,6 +70,11 @@ sub make_cmd($)
 {
 	my $conf = shift;
 	my $log = $conf->{'bind'}{'log'};
+	if ( ! -r $log )
+	{
+		err("Log to watch '$log' does not exist or is unreadable");
+		exit(1);
+	}
 	return "rpzla-bind-filter.pl -f $log | " .
 		"rpzla-bind-to-db.pl -c " .  $options{OPT_CONFIG()}
 }

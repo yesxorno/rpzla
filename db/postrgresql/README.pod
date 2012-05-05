@@ -3,15 +3,24 @@
 
 =head2 Creating the Database
 
-The database needs tables, views, indexes etc..
+The database needs tables, views, indexes, roles and to begin with the sample
+data.
 
-These can be created with:
+All but the sample data is created with:
 
   sudo ./create_structures.pl
 
-To do that, B<and> upload the sample data, use:
+Add sample data with
+
+  sudo ./upload-sample-data.sh
+
+Or, you can do the whole thing with:
 
   db_all.sh
 
 There is an inverse for create_structures.pl, destroy_structures.pl
 which will destroy everything (database, roles etc.)
+
+To destroy all data, database, roles etc.:
+
+  sudo ./destroy_structures.pl
