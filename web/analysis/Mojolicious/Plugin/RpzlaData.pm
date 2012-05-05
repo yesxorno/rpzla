@@ -11,10 +11,36 @@ use DBI;
 # select * from view.
 #
 
-######################################################################
 #
-# Local routines.
+# NOTE:
 #
+# The entire database design is based on having all the queries 
+# stored as views.  This means that for any query we are just
+# doing a 'select * from <view>'.  Thus, we can do all the 
+# work with just a few routines.
+
+# Search titles keyed on table (view) name
+my %title =
+(
+	'dns_day_all'		=> 'DNS data (day)',
+	'dns_week_all'		=> 'DNS data (week)',
+	'dns_month_all'		=> 'DNS data (month)',
+	'dns_day_frequency'	=> 'DNS aggregate (day)',
+	'dns_week_frequency'	=> 'DNS aggregate (week)',
+	'dns_month_frequency'	=> 'DNS aggregate (month)',
+	'web_day_all'		=> 'Web data (day)',
+	'web_week_all'		=> 'Web data (week)',
+	'web_month_all'		=> 'Web data (month)',
+	'web_day_frequency'	=> 'Web aggregate (day)',
+	'web_week_frequency'	=> 'Web aggregate (week)',
+	'web_month_frequency'	=> 'Web aggregate (month)',
+	'cor_day_web'		=> 'Correlated data DNS + Web (day)',
+	'cor_week_web'		=> 'Correlated data DNS + Web (week)',
+	'cor_month_web'		=> 'Correlated data DNS + Web (month)',
+	'cor_day_dns'		=> 'Correlated data DNS - Web (day)',
+	'cor_week_dns'		=> 'Correlated data DNS - Web (week)',
+	'cor_month_dns'		=> 'Correlated data DNS - Web (month)',
+);
 
 # Connect to DB based on supplied credentials
 sub get_dbh($)
@@ -35,6 +61,11 @@ sub get_dbh($)
 		or die $DBI::errstr;
 	return $dbh
 };
+
+######################################################################
+#
+# Database queries
+#
 
 # retrive all rows, and add column headers
 sub get_all($$)
@@ -65,158 +96,18 @@ sub select_all($$)
 	return get_all($dbh, $sql);
 };
 
-######################################################################
 #
-# Database queries
+# The master 'get it all' routine.  Give me the handle, schema and table, 
+# and you get the page title and data.
 #
-
-# Search titles keyed on table (view) name
-my %title =
-(
-	'dns_day_all'		=> 'DNS data (day)',
-	'dns_week_all'		=> 'DNS data (week)',
-	'dns_month_all'		=> 'DNS data (month)',
-	'dns_day_frequency'	=> 'DNS aggregate (day)',
-	'dns_week_frequency'	=> 'DNS aggregate (week)',
-	'dns_month_frequency'	=> 'DNS aggregate (month)',
-	'web_day_all'		=> 'Web data (day)',
-	'web_week_all'		=> 'Web data (week)',
-	'web_month_all'		=> 'Web data (month)',
-	'web_day_frequency'	=> 'Web aggregate (day)',
-	'web_week_frequency'	=> 'Web aggregate (week)',
-	'web_month_frequency'	=> 'Web aggregate (month)',
-	'cor_day_web'		=> 'Correlated data DNS + Web (day)',
-	'cor_week_web'		=> 'Correlated data DNS + Web (week)',
-	'cor_month_web'		=> 'Correlated data DNS + Web (month)',
-	'cor_day_dns'		=> 'Correlated data DNS - Web (day)',
-	'cor_week_dns'		=> 'Correlated data DNS - Web (week)',
-	'cor_month_dns'		=> 'Correlated data DNS - Web (month)',
-);
-
-sub get_dns_day_all($)
+sub get_db_data($$$)
 {
-	my $dbh = shift;
-	my $table = 'dns_day_all';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_dns_week_all($)
-{
-	my $dbh = shift;
-	my $table = 'dns_week_all';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_dns_month_all($)
-{
-	my $dbh = shift;
-	my $table = 'dns_month_all';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_dns_day_frequency($)
-{
-	my $dbh = shift;
-	my $table = 'dns_day_frequency';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_dns_week_frequency($)
-{
-	my $dbh = shift;
-	my $table = 'dns_week_frequency';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_dns_month_frequency($)
-{
-	my $dbh = shift;
-	my $table = 'dns_month_frequency';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_web_day_all($)
-{
-	my $dbh = shift;
-	my $table = 'web_day_all';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_web_week_all($)
-{
-	my $dbh = shift;
-	my $table = 'web_week_all';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_web_month_all($)
-{
-	my $dbh = shift;
-	my $table = 'web_month_all';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_web_day_frequency($)
-{
-	my $dbh = shift;
-	my $table = 'web_day_frequency';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_web_week_frequency($)
-{
-	my $dbh = shift;
-	my $table = 'web_week_frequency';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_web_month_frequency($)
-{
-	my $dbh = shift;
-	my $table = 'web_month_frequency';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_cor_day_web($)
-{
-	my $dbh = shift;
-	my $table = 'cor_day_web';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_cor_week_web($)
-{
-	my $dbh = shift;
-	my $table = 'cor_week_web';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_cor_month_web($)
-{
-	my $dbh = shift;
-	my $table = 'cor_month_web';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_cor_day_dns($)
-{
-	my $dbh = shift;
-	my $table = 'cor_day_dns';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_cor_week_dns($)
-{
-	my $dbh = shift;
-	my $table = 'cor_week_dns';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
-};
-
-sub get_cor_month_dns($)
-{
-	my $dbh = shift;
-	my $table = 'cor_month_dns';
-	return {'title' => $title{$table},'data' => select_all($dbh, $table)};
+	my ($dbh, $schema, $table) = @_;
+	return 
+	{
+		'title' => $title{$table},
+		'data' => select_all($dbh, "$schema.$table")
+	};
 };
 
 
@@ -225,114 +116,114 @@ sub get_cor_month_dns($)
 # 'get_data' routines (for each data type)
 #
 
-sub get_dns_data($$)
+sub get_dns_data($$$)
 {
-	my ($dbh, $radio) = @_;
+	my ($dbh, $schema, $radio) = @_;
 	my $data = { };
 	if ( 'frequency' eq $radio->{summarize} )
 	{
 		if ( 'day' eq $radio->{period} )
 		{
-			$data = get_dns_day_frequency($dbh);
+			$data = get_db_data($dbh, $schema, 'dns_day_frequency');
 		}
 		elsif ( 'week' eq $radio->{period} )
 		{
-			$data = get_dns_week_frequency($dbh);
+			$data = get_db_data($dbh, $schema, 'dns_week_frequency');
 		}
 		elsif ( 'month' eq $radio->{period} )
 		{
-			$data = get_dns_month_frequency($dbh);
+			$data = get_db_data($dbh, $schema, 'dns_month_frequency');
 		}
 	}
 	elsif ( 'all' eq $radio->{summarize} )
 	{
 		if ( 'day' eq $radio->{period} )
 		{
-			$data = get_dns_day_all($dbh);
+			$data = get_db_data($dbh, $schema, 'dns_day_all');
 		}
 		elsif ( 'week' eq $radio->{period} )
 		{
-			$data = get_dns_week_all($dbh);
+			$data = get_db_data($dbh, $schema, 'dns_week_all');
 		}
 		elsif ( 'month' eq $radio->{period} )
 		{
-			$data = get_dns_month_all($dbh);
+			$data = get_db_data($dbh, $schema, 'dns_month_all');
 		}
 	}
 	return $data;
 };
 
-sub get_web_data($$)
+sub get_web_data($$$)
 {
-	my ($dbh, $radio) = @_;
+	my ($dbh, $schema, $radio) = @_;
 	my $data = { };
 	if ( 'frequency' eq $radio->{summarize} )
 	{
 		if ( 'day' eq $radio->{period} )
 		{
-			$data = get_web_day_frequency($dbh);
+			$data = get_db_data($dbh, $schema, 'web_day_frequency');
 		}
 		elsif ( 'week' eq $radio->{period} )
 		{
-			$data = get_web_week_frequency($dbh);
+			$data = get_db_data($dbh, $schema, 'web_week_frequency');
 		}
 		elsif ( 'month' eq $radio->{period} )
 		{
-			$data = get_web_month_frequency($dbh);
+			$data = get_db_data($dbh, $schema, 'web_month_frequency');
 		}
 	}
 	elsif ( 'all' eq $radio->{summarize} )
 	{
 		if ( 'day' eq $radio->{period} )
 		{
-			$data = get_web_day_all($dbh);
+			$data = get_db_data($dbh, $schema, 'web_day_all');
 		}
 		elsif ( 'week' eq $radio->{period} )
 		{
-			$data = get_web_week_all($dbh);
+			$data = get_db_data($dbh, $schema, 'web_week_all');
 		}
 		elsif ( 'month' eq $radio->{period} )
 		{
-			$data = get_web_month_all($dbh);
+			$data = get_db_data($dbh, $schema, 'web_month_all');
 		}
 	}
 	return $data;
 };
 
-sub get_cor_web_data($$)
+sub get_cor_web_data($$$)
 {
-	my ($dbh, $radio) = @_;
+	my ($dbh, $schema, $radio) = @_;
 	my $data = { };
 	if ( 'day' eq $radio->{period} )
 	{
-		$data = get_cor_day_web($dbh);
+		$data = get_db_data($dbh, $schema, 'cor_day_web');
 	}
 	elsif ( 'week' eq $radio->{period} )
 	{
-		$data = get_cor_week_web($dbh);
+		$data = get_db_data($dbh, $schema, 'cor_week_web');
 	}
 	elsif ( 'month' eq $radio->{period} )
 	{
-		$data = get_cor_month_web($dbh);
+		$data = get_db_data($dbh, $schema, 'cor_month_web');
 	}
 	return $data;
 };
 
-sub get_cor_dns_data($$)
+sub get_cor_dns_data($$$)
 {
-	my ($dbh, $radio) = @_;
+	my ($dbh, $schema, $radio) = @_;
 	my $data = { };
 	if ( 'day' eq $radio->{period} )
 	{
-		$data = get_cor_day_dns($dbh);
+		$data = get_db_data($dbh, $schema, 'cor_day_dns');
 	}
 	elsif ( 'week' eq $radio->{period} )
 	{
-		$data = get_cor_week_dns($dbh);
+		$data = get_db_data($dbh, $schema, 'cor_week_dns');
 	}
 	elsif ( 'month' eq $radio->{period} )
 	{
-		$data = get_cor_month_dns($dbh);
+		$data = get_db_data($dbh, $schema, 'cor_month_dns');
 	}
 	return $data;
 };
@@ -352,23 +243,24 @@ sub get_data
 {
 	my ($db_creds, $radio) = @_;
 	my $dbh = get_dbh($db_creds);
+	my $schema = $db_creds->{schema};
 	my $data = undef;
 	# first level split of the radio values
 	if ( 'dns' eq $radio->{'data_type'} )
 	{
-		$data = get_dns_data($dbh, $radio);
+		$data = get_dns_data($dbh, $schema, $radio);
 	}
 	elsif ( 'web' eq $radio->{'data_type'} )
 	{
-		$data = get_web_data($dbh, $radio);
+		$data = get_web_data($dbh, $schema, $radio);
 	}
 	elsif ( 'cor_web' eq $radio->{'data_type'} )
 	{
-		$data = get_cor_web_data($dbh, $radio);
+		$data = get_cor_web_data($dbh, $schema, $radio);
 	}
 	elsif ( 'cor_dns' eq $radio->{'data_type'} )
 	{
-		$data = get_cor_dns_data($dbh, $radio);
+		$data = get_cor_dns_data($dbh, $schema, $radio);
 	}
 	$dbh->disconnect();
 	if ( defined($data) )
@@ -389,13 +281,20 @@ sub get_data
 		}
 		else
 		{
-			$comment = "The world has gone crazy.";
+			$comment = "The world has gone crazy. Negative number of row returned from query.";
 		}
 		$data->{comment} = [ $comment ];
 	}
 	return $data;
 };
 
+#
+# TODO:
+#
+# Development idea.  Provide the use with a list of the view, and
+# they can just click on a view to see its data.
+#
+# Not working yet.
 
 # return a list of the view names in the database
 sub get_views($)
@@ -423,6 +322,7 @@ sub get_views($)
 #
 
 # use 'register' to make the 'plugin' into a 'helper' for the app
+# i.e it gets added as a member function for the app.
 sub register {
 	my ($self, $app) = @_;
 	$app->helper

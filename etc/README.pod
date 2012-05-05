@@ -19,3 +19,30 @@ file needs to be installed.
 It provides the details of database connectivity, log file
 locations for parsing and the URL detials for the analysis
 site.
+
+=head2 Sufficiently Good Practice
+
+Each component (BIND, Walled Garden and Analysis Site) only
+needs to know their own things.  Thus, on a resolver it will
+need the database credentials for the <log> user but has
+no need for the <analysis> user (conversely for the Analysis
+site).  Equivalently, the resolver has no need to know where
+the Walled Garden keeps its logs.  Everyone needs to know 
+where the database is, but, again, only their own type of 
+access privileges.
+
+So, for example, a BIND server has no need to know about where
+the Analysis site is, or the Walled Garden keeps its logs.
+
+Thus, fill out the config once, in full, and keep that in a 
+secure location.  Then as you drop it around to the various 
+places, just delete what the local thing doesn't need to know.
+
+This is B<especially> important for the copy that goes in the
+Analysis site's 'document root'.  Remove the log user's 
+details.  Thus, even if someone gets a copy of the data,
+then can't modify your data without lots more effort.
+[I have no idea how secure the Mojolicous web framework is,
+but reasonably assume it has some vulnerabilities.]
+
+Defence in depth, as they say.

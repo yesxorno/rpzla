@@ -20,7 +20,10 @@ use constant	PAGE_HELP 	=> "Here is the help";
 #	pass	=> 'something-that-you-chose',
 # };
 
+# Note: This class adds methods to 'self'.  Thus, if you cant find the
+# self->some_method(arg,...) look in Mojolicious/Plugin/RpzlaData.pm
 plugin 'RpzlaData';
+
 
 # Inquire as to the states of the radio buttons and return a hash
 # with defaults set if no value chosen.

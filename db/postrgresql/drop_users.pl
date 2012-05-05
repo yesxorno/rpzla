@@ -64,86 +64,25 @@ sub parse_command_line()
         return $retval;
 }
 
-sub make_insert_user($$$)
+sub drop_user($)
 {
-	my ($schema,$user,$pass) = @_;
-	print "
-CREATE USER $user WITH PASSWORD '$pass';
-GRANT USAGE on SCHEMA $schema to $user;
-GRANT INSERT on TABLE $schema.web to $user;
-GRANT INSERT on TABLE $schema.dns to $user;
-";
-}
-
-sub make_select_user($$$)
-{
-	my ($schema,$user,$pass) = @_;
-	print "
-CREATE USER $user WITH PASSWORD '$pass';
-GRANT USAGE on SCHEMA $schema to $user;
-GRANT SELECT on TABLE $schema.web to $user;
-GRANT SELECT on TABLE $schema.dns to $user;
-";
-	#
-	# TODO:
-	#
-	# This is crap, should use the database to find out all the view
-	# names.  Needs fixing.
-	#
-	my @views = 
-	(
-		"dns_day",
-		"dns_week",
-		"dns_month",
-		"dns_day_trunc",
-		"dns_week_trunc",
-		"dns_month_trunc",
-		"dns_day_frequency",
-		"dns_week_frequency",
-		"dns_month_frequency",
-		"dns_day_all",
-		"dns_week_all",
-		"dns_month_all",
-		"web_day",
-		"web_week",
-		"web_month",
-		"web_day_trunc",
-		"web_week_trunc",
-		"web_month_trunc",
-		"web_day_frequency",
-		"web_week_frequency",
-		"web_month_frequency",
-		"web_day_all",
-		"web_week_all",
-		"web_month_all",
-		"cor_day_web",
-		"cor_week_web",
-		"cor_month_web",
-		"cor_day_dns",
-		"cor_week_dns",
-		"cor_month_dns",
-	);
-	for my $view ( @views )
-	{
-		# Note if you add 'VIEW' as in 'SELECT on VIEW foo' 
-		# it **FAILS**  wot?
-		print "GRANT SELECT on $schema.$view to $user;\n";
-	}
+	my $user = shift;
+	print "DROP USER $user;\n";
 }
 
 sub main()
 {
 	my $conf = new Config::General($options{OPT_CONFIG()});
 	my %config = $conf->getall();
-	my $schema = $config{db}{schema};
-	my $user;
-	my $pass;
-	$user = $config{db}{log}{user};
-	$pass = $config{db}{log}{pass};
-	make_insert_user($schema, $user, $pass);
-	$user = $config{db}{analysis}{user};
-	$pass = $config{db}{analysis}{pass};
-	make_select_user($schema, $user, $pass);
+	my @users = 
+	( 
+		$config{db}{log}{user}, 
+		$config{db}{analysis}{user},
+	);
+	for my $user ( @users )
+	{
+		drop_user($user);
+	}
 	return 1;
 }
 
@@ -157,7 +96,7 @@ __END__
 
 =head1 NAME
 
-create_users.pl - Produce CREATE USER statement for RPZLA on PostgreSQL
+create_users.pl - Produce DROP USER statements for RPZLA on PostgreSQL
 
 =head1 SYNOPSIS
 

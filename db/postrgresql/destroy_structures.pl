@@ -94,25 +94,13 @@ sub main()
 	#
 	# Create the DB first, the everything in it.  Check NOOP for testing.
 	#
-	my $create_db = "CREATE DATABASE $db;";
-	print "Postgres will prompt you for passwords a few times ...\n\n" .
-		"Create DB first (takes a while, patience):\n\n";
-	system
-	(
-		"echo '$create_db' " . 
-		( $options{OPT_NOOP()} ? 
-			'' : 
-			" | " . SQL() . " $user $user"
-		)
-	);
-	print("\nNow we create everything else (password again):\n\n");
+	print "\n>>>Destroying everything<<<, enter password:\n\n";
 	my @cmds =
 	(
 		# the '(' .... ')' is IMPORTANT (pass it all to transform)
-		"( echo 'CREATE SCHEMA $schema;' ",
-		"cat create_tables.sql",
-		"cat create_views.sql",
-		"./create_users.pl -c $conf_file )",
+		"echo 'DROP DATABASE $db;'",
+		"echo 'DROP SCHEMA $schema CASCADE;' ",
+		"./drop_users.pl -c $conf_file",
 	);
 	#
 	# 'transform' just does a global search replace with the chosen
@@ -120,8 +108,8 @@ sub main()
 	#
 	# create_users.pl also loads the config an obeys its choices.
 	#
-	my $cmd = join(' && ', @cmds) ." | ". transform($schema) .
-		( $options{OPT_NOOP()} ? '' : " | ". SQL() . " $db $user" );
+	my $cmd = '( ' . join(' && ', @cmds) .") | ". transform($schema) .
+		( $options{OPT_NOOP()} ? '' : " | ". SQL() . " postgres $user" );
 	system($cmd);
 	return $?;
 }

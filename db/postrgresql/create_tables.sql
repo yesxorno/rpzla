@@ -1,5 +1,5 @@
 
-CREATE SEQUENCE <<<<SCHEMA>>>>.dns_id MINVALUE 0\g
+CREATE SEQUENCE <<<<SCHEMA>>>>.dns_id MINVALUE 0;
 
 CREATE TABLE <<<<SCHEMA>>>>.dns
 (
@@ -8,9 +8,9 @@ CREATE TABLE <<<<SCHEMA>>>>.dns
 	client_ip VARCHAR(39),	   -- max length of an IPv6 (colon separated)
 	query_domain VARCHAR(120), -- hoping there are no domains longer ...
 	response_zone VARCHAR(120) -- hoping there are no domains longer ...
-)\g
+);
 
-CREATE SEQUENCE <<<<SCHEMA>>>>.web_id MINVALUE 0\g
+CREATE SEQUENCE <<<<SCHEMA>>>>.web_id MINVALUE 0;
 
 CREATE TABLE <<<<SCHEMA>>>>.web
 (
@@ -19,6 +19,6 @@ CREATE TABLE <<<<SCHEMA>>>>.web
 	client_ip VARCHAR(39),	    -- max length of an IPv6 (colon separated)
 	client_hostname VARCHAR(80),-- hoping there are no hostnames longer ...
 	query_domain VARCHAR(120) -- hoping there are no domains longer ...
-)\g
+);
 
 

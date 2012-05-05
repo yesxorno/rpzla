@@ -12,9 +12,9 @@ my $cmd = '( ./web.pl && ./dns.pl ) | psql ';
 # should generalise this (-c /path/to/config)
 my $conf = new Config::General('/etc/rpzla/rpzla.conf');
 my %config = $conf->getall();
-my $user = $config{db}{user};
 my $db = $config{db}{name};
 
 # run it
-system($cmd . "$user $db");
+print "Now we upload sample data.\n\nPostgres user password needed ...\n";
+system($cmd . "$db postgres");
 exit($?)

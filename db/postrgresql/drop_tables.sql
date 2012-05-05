@@ -1,0 +1,9 @@
+
+DROP SEQUENCE <<<<SCHEMA>>>>.dns_id;
+
+DROP TABLE <<<<SCHEMA>>>>.dns CASCASE;
+
+CREATE SEQUENCE <<<<SCHEMA>>>>.web_id;
+
+CREATE TABLE <<<<SCHEMA>>>>.web CASCASE;
+

@@ -7,8 +7,11 @@ The database needs tables, views, indexes etc..
 
 These can be created with:
 
-  create_structures.pl
+  sudo ./create_structures.pl
 
-To do that, and upload the sample data, can be done with:
+To do that, B<and> upload the sample data, use:
 
   db_all.sh
+
+There is an inverse for create_structures.pl, destroy_structures.pl
+which will destroy everything (database, roles etc.)
