@@ -35,8 +35,7 @@ get '/' => sub {
 		'because you attempted to reach a web page ' .
 		'that is known to merely attempt to attack ' .
 		'your computer.',
-		'Arriving here has saved your computer from this attack ' . 
-		'attack.',
+		'Arriving here has saved your computer from this attack.', 
 		'If you would like to know more about what is happening ' .
 		'see the <a href="/about">About</a> page.',
 		'For further information please contact your IT service.'
@@ -117,7 +116,7 @@ __DATA__
 	<table width="100%">
 	<tr>
 		<td width="15%">
-			<a href="/"><img src="/logo.jpg" align="left" /></a>
+			<a href="/"><img src="/logo.png" align="left" /></a>
 		</td>
 		<td width="85%">
 			<h2><%= $site_title %></h2>

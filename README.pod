@@ -3,7 +3,7 @@
 
 RPZLA translates as Response Policy Zone (RPZ) Log Analysis.
 Its a bit of a misnoma, in that RPZ is a BIND thing and the
-project also relies heaving on log analysis of Apache logs.
+project also relies heavily on log analysis of Apache logs.
 
 It is a first effort to allow IT organisations to utilize the
 data that can be gathered from an implementation of the RPZ
@@ -20,17 +20,16 @@ See the LICENCE.txt file (GPLv2).
 
 =head2 Status
 
-This project is under B<core development> (pre-Alpha).  It is not
-even ready for assessment.
+This project is under B<core development> (pre-Alpha). 
 
-The first alpha release is expectecd in June/July 2012.
+The first alpha release is expectecd in Sept/Oct 2012.
 
 =head2 Documentation
 
 Documentation for the project is in Perl based 'pod' files.
 They are located in the source code tree where they are 
 relevant.  Its great that github.com is using the multi-rendering
-capability that was one of the purposed of the POD format.
+capability that was one of the proposed uses of the POD format.
 
 Overall documenation is placed in the 
 L<https://github.com/yesxorno/rpzla/tree/master/doc> 
@@ -38,7 +37,7 @@ directory.
 
 Wiki's may come. The current focus is that if you 
 download the repository onto a potentially command line
-only server, and you still have the doco there in easily readable
+only server, you still have the doco there in and easily readable
 form.  That is the Perl thing: pod == Plain Old Documentation
 
 =head3 How To
