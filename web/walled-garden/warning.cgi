@@ -28,17 +28,24 @@ helper render_page => sub
 #
 get '/' => sub {
 	my $self = shift;
-	my $headers = Mojo::Headers->new();
-	my $referrer = $headers->referrer();
-	my $comments = 
-	[ 
-		'blah blah',
-		'Referrer: ' . $referrer,
-	];
+	my $headers = $self->req->headers();
+	my @comments = 
+	( 
+		'You have arrived at this page either deliberately, or ' .
+		'because you attempted to reach a web page ' .
+		'that is known to merely attempt to attack ' .
+		'your computer.',
+		'Arriving here has saved your computer from this attack ' . 
+		'attack.',
+		'If you would like to know more about what is happening ' .
+		'see the <a href="/about">About</a> page.',
+		'For further information please contact your IT service.'
+		
+	);
 	my $page_data =
 	{
 		'title'	=> 'Visiting Dangerous Sites',
-		'comment' => $comments,
+		'comment' => \@comments,
 	};
 	$self->render_page($page_data);
 };
@@ -51,8 +58,33 @@ get '/about' => sub {
 	my $title = 'About the Safety Net';
 	my $comments = 
 	[ 
-		$title,
-		'Nasty world'
+		'The criminals that are using the internet for profit ' . 
+		'based on illegal activities need to register domains to ' .
+		'host their web pages that are fully of nasty software ' .
+		'(malware).  The malware attempts to infect you computer ' .
+		'and then force it to do nasty things like send SPAM, or ' .
+		'inform the criminals of whatever you are doing on the ' .
+		'internet, including sending them the password ' .
+		'that you use for your bank!.',
+		'Going back to 1996, ' .
+		'<a href="https://en.wikipedia.org/wiki/Paul_Vixie">' . 
+		'Paul Vixie</a> from the ' .
+		'<a href="http://isc.org">Internet Systems ' .
+		'Consortium (ISC)</a> ' .
+		'which manages the most used software (BIND) for converting ' .
+		'domains into internet addresses (' .
+		'<a href="https://en.wikipedia.org/wiki/Domain_Name_System">' .
+		'DNS</a>), began a campaign to ' .
+		'combat the rise of SPAM. It was based on reputation data.  ' .
+		'i.e we know that these '.
+		'people are sending spam, so we will stop accepting e-mail '.
+		'from them.  This approach is a cornerstone of any ' .
+		'modern, comprehensive, anti-spam mechanism.',
+		'This site is the saftey net for a ' .
+		'<strong>new mechanism</strong>, also ' .
+		'developed by Paul Vixie and the ISC, for using reputational '.
+		'data about domains that are being registered and then used '.
+		'by criminals to deliver malware.',
 	];
 	my $page_data =
 	{
@@ -75,7 +107,7 @@ __DATA__
 <!DOCTYPE HTML>
 <html lang="en">
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title>RPZ Log Analysis</title>
 	<link rel="stylesheet" type="text/css" href="/style.css" />
 </head>
@@ -84,10 +116,10 @@ __DATA__
 	<div id="header">
 	<table width="100%">
 	<tr>
-		<td width="25%">
-			<a href="/"><img src="/logo.png" align="left"/></a>
+		<td width="15%">
+			<a href="/"><img src="/logo.jpg" align="left" /></a>
 		</td>
-		<td width="75%">
+		<td width="85%">
 			<h2><%= $site_title %></h2>
 		</td>
 	</tr>
@@ -96,13 +128,13 @@ __DATA__
 
 	<div id="nav">
 	<hr />
-		<table width="100%">
+		<table width="90%">
 		<tr>
 			<td align="left"><a href="/">Home</a></td>
 			<td align="right"><a href="/about">About</a> </td>
 		</tr>
 		</table>
-		<hr />
+	<hr />
 	</div>
 
 	<div id="main">
