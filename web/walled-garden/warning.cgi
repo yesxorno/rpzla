@@ -107,7 +107,7 @@ __DATA__
 <html lang="en">
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<title>RPZ Log Analysis</title>
+	<title>RPZ: Warning Site</title>
 	<link rel="stylesheet" type="text/css" href="/style.css" />
 </head>
 <body>
