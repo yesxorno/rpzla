@@ -14,7 +14,7 @@ use constant OPT_MANUAL         => 'manual';
 use constant OPT_VERSION        => 'Version';
 
 # cut out the fields we need from the BIND query log (input filter)
-use constant FILTER		=> " grep 'response policy QNAME' ";
+use constant FILTER		=> " grep ':rpz QNAME CNAME rewrite ' ";
 use constant OUTPUT_SEP		=> ' ';
 
 my $version = '0.1';
@@ -65,16 +65,22 @@ sub parse_command_line()
         return $retval;
 }
 
+# given a line from the named log, reformat to:
+# date, time, client ip, query domain, rpz zone
 sub reformat($)
 {
 	my @w = split(' ', shift);
+	# unclear; needs improvement: too much 'magic'
 	my ($date, $time, $ip_port, $response, $query_zone) = 
 		($w[0], $w[1], $w[5], $w[10], $w[12]);
 	my ($hms, $fractional_seconds) = split('[.]', $time);
 	my ($ip, $rest) = split('[#]', $ip_port);
+	# Wrong way to do this: strip the query domain, rather than 
+	# relying on the fact that the rpz zone name starts with rpz (idiot)
 	my @domains = split('[.]', $query_zone);
 	my @rpz_zone = ( );
 	my $current = '';
+	# FIX ME: dont rely on rpz as the first part of the rpz zone name
 	while ( 'rpz' ne $current and scalar(@domains) )
 	{
 		$current = pop(@domains);
@@ -90,6 +96,8 @@ sub reformat($)
 	);
 }
 
+# All we do is tail the log file and reformat it to provide the data
+# that the 'to db' logger wants.
 sub main()
 {
 	local $| = 0;

@@ -14,3 +14,18 @@ E.g for the rplza-bind.pl script:
 	rpzla-bind.pl -m
 
 will show its man page which describes its purpose, usage etc..
+
+=head2 Log to DB Reformatting
+
+The two log scrapers, one for bind and the other for apache, are
+composed of a 'filter' that tail's the relevant log and then
+reformats that (extracting only the desired information) into
+a form that the 'to-db' script wishes to see.
+
+One can see, by examining the 'to-db' scripts that they do almost
+nothing (join the date and time into one string) and then send
+that data as an insert to the DB.
+
+The key to this is that the data from the logs come in a format
+expected by the 'filter' scripts.  As RPZ is a fairly new thing
+for BIND these may change.
