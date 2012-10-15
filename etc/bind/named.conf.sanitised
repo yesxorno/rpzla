@@ -42,24 +42,23 @@ logging
 		print-category yes;
         };
 	/* 
-	 * we need a query log to be parsed for data transfer to the 
-	 * query database for use by the analysis web site
+	 *  We separate the rpz log entries for parsing by the log scraper
 	 *
-	 * restrict size according to your limits
+	 *  We need these logs because then give us the query and the 
+	 *  rpz zone that responded to them.
 	 */
-        channel query_log
+        channel rpz_log
 	{
-                file "data/named.log.query" versions 1 size 10m;
+                file "data/named.log.rpz" versions 1 size 10m;
                 severity info;
-		print-severity yes;
+		// Dont print severity or category !!!!
 		print-time yes;
-		print-category yes;
         };
 	category default
 	{
 		general;
 	};
-	category queries
+	category rpz
 	{
 		query_log;
 	};
