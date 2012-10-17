@@ -27,15 +27,15 @@
 . /etc/sysconfig/network
 
 DIR=/usr/local/bin
+export PATH=$PATH:$DIR
 name='rpzla-apache'
-process='rpzla-apache.pl'
-program=$DIR/$process
+program='rpzla-apache.pl'
 lockfile=/var/lock/subsys/$name
 
 start() {
 	[ "$EUID" != "0" ] && exit 4
 	[ "$NETWORKING" = "no" ] && exit 1
-	[ -x $program ] || exit 5
+	[ -x $DIR/$program ] || exit 5
 	[ -r /etc/rpzla/rpzla.conf ] || exit 6
 
 	# Start daemon.
@@ -50,7 +50,7 @@ start() {
 stop() {
 	[ "$EUID" != "0" ] && exit 4
         echo -n $"Shutting down $name: "
-	killproc $process
+	killproc $program
 	RETVAL=$?
         echo
 	[ $RETVAL -eq 0 ] && rm -f $lockfile

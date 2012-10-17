@@ -14,8 +14,17 @@ use constant OPT_MANUAL         => 'manual';
 use constant OPT_VERSION        => 'Version';
 
 # cut out the fields we need from the BIND query log (input filter)
-use constant FILTER		=> " grep '304 \"GET / HTTP' ";
+# use constant FILTER		=> " grep '304 \"GET / HTTP' ";
 use constant OUTPUT_SEP		=> ' ';
+
+my @valid_files = 
+(
+	'index.html',
+	'censorship.html',
+	'favicon.ico',
+	'stylesheet.css',
+	'background.html',
+);
 
 my $version = '0.1';
 my $ME = basename($PROGRAM_NAME);
@@ -67,12 +76,28 @@ sub parse_command_line()
 
 sub reformat($)
 {
-	my @values = split(' ', shift);
-	while ( 5 < scalar(@values) )
+	my $s = shift;
+	my $retval = undef;
+	if ( $s =~ m/([\w-]+) ([\w:]+) ([\d.:]+) ([\w.:-]+) ([\w.-]+) ([\d]+) "GET ([\w\/.?&]+) HTTP\/[^"]*"/ )
 	{
-		pop(@values);
+		my ($date, $time, $ip, $lookup, $site, $http_response, $path ) =
+			($1, $2, $3, $4, $5, $6, $7);
+		my $valid_request = 0;
+		for my $valid ( @valid_files )
+		{
+			if ( $path eq "/$valid" )
+			{
+				$valid_request = 1;
+				last;
+			}
+		}
+		if ( not $valid_request )
+		{
+			# log it
+			$retval = join(' ', $date, $time, $ip, $lookup, $site);
+		}
 	}
-	return join(' ', @values);
+	return $retval;
 }
 
 
@@ -80,7 +105,8 @@ sub main()
 {
 	my $retval = 1;
 	my $file = $options{OPT_FILE()};
-	my $cmd = " tail -f $file | " . FILTER() . " | ";
+	# my $cmd = " tail -f $file | " . FILTER() . " | ";
+	my $cmd = " tail -f $file | ";
 	if ( ! open(STREAM, $cmd) )
 	{
 		err("Failure attempting to watch '$file'.  Aborting.");
@@ -88,11 +114,14 @@ sub main()
 	else
 	{
 		# msg("Running '$cmd'");
+		my $data = undef;
 		while ( <STREAM> )
 		{
-			print reformat($_) . "\n";
+			chomp();
+			$data = reformat($_);
+			print "$data\n" if defined($data);
 		}
-		msg("Ending");
+		# msg("Ending");
 	}
 	return $retval;
 }

@@ -160,8 +160,11 @@ sub main()
 		while ( <STREAM> )
 		{
 			chomp($_);
-			$data = reformat($_) if ( m/ rewrite / );
-			print "$data\n" if defined($data);
+			if ( m/ rewrite / )
+			{
+				$data = reformat($_);
+				print "$data\n" if defined($data);
+			}
 		}
 		msg("Ending");
 	}

@@ -29,6 +29,9 @@ my $parse = GetOptions
         OPT_MANUAL(),
         OPT_VERSION(),
 );
+# We need access to this for the signal handler cleanup (be nice)
+my $dbh = undef;
+my $sth = undef;
 
 sub err($) { my $s = shift; print STDERR "$ME: Error: $s\n"; }
 sub msg($) { my $s = shift; print STDERR "$ME: Info: $s\n"; }
@@ -72,8 +75,8 @@ sub db_connect($)
 	my $type = $creds->{'type'};
 	my $host = $creds->{'host'};
 	my $name = $creds->{'name'};
-	my $user = $creds->{'log'}->{'user'};
-	my $pass = $creds->{'log'}->{'pass'};
+	my $user = $creds->{'user'};
+	my $pass = $creds->{'pass'};
 	my $target = 'dbi:' . $type . ':dbname=' . $name . ';host=' . $host;
 	my $dbh = DBI->connect($target, $user, $pass, {AutoCommit => 0}) or
 		die("Failure connecting to database: check your config");
@@ -103,13 +106,25 @@ sub db_insert($$)
 	return $sth->execute($date . ' ' . $time, @values);
 }
 
+sub sig_handler($)
+{
+	my $sig = shift;
+	# Not much checking here; just close the door
+	$sth->finish();
+	$dbh->commit();
+	$dbh->disconnect();
+	exit(0);
+}
+
+$SIG{INT} = $SIG{TERM} = \&sig_handler;
+
 sub main()
 {
 	my $retval = 1;
 	my $conf = new Config::General($options{OPT_CONFIG()});
 	my %config = $conf->getall();
-	my $dbh = db_connect($config{db});
-	my $sth = prepare_insert($dbh);
+	$dbh = db_connect($config{db});
+	$sth = prepare_insert($dbh);
 	my $uncommitted = 0;
 	while ( <STDIN> )
 	{

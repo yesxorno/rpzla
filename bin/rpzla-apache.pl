@@ -7,6 +7,7 @@ use Pod::Usage;
 use File::Basename;
 use English;
 use Config::General;
+use Daemon::Daemonize;
 
 # command-line options
 use constant OPT_CONFIG		=> 'config';
@@ -64,6 +65,17 @@ sub parse_command_line()
         return $retval;
 }
 
+# Handle cleanup on signalling (i.e /etc/init.d/rc.d/rpzla-apache stop)
+sub sig_handler($)
+{
+	my $sig = shift;
+	# Simple, but probably not perfect
+	system("killall rpzla-apache-to-db.pl rpzla-apache-filter.pl");
+	exit(0);
+}
+
+$SIG{INT} = $SIG{TERM} = \&sig_handler;
+
 # return the command for the pipeline
 sub make_cmd($)
 {
@@ -83,8 +95,8 @@ sub main()
 	my $retval = 1;
 	my $conf = new Config::General($options{OPT_CONFIG()});
 	my %config = $conf->getall();
-	# Should deamonise this ...
 	my $cmd = make_cmd(\%config);
+	Daemon::Daemonize->daemonize();
 	system($cmd);
 	return $retval;
 }
