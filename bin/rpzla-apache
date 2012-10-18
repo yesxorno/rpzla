@@ -306,17 +306,17 @@ __END__
 
 =head1 NAME
 
-rpzla-apache.pl - transfer Apache log entries to the RPZLA database
+rpzla-apache - transfer Apache log entries to the RPZLA database
 
 =head1 SYNOPSIS
 
-        rpzla-apache.pl <-h|-m|-V>
+        rpzla-apache <-h|-m|-V>
 or
-        rpzla-apache.pl [-d] [-t] [-c /path/to/config]
+        rpzla-apache [-d] [-t] [-c /path/to/config]
 
 =head1 DESCRIPTION
 
-rpzla-apache.pl watches the apache log as defined in the config
+rpzla-apache watches the apache log as defined in the config
 and extracts logs that indicate someone visiting the site because
 of RPZ domain name redirection.  These logs are then transferred
 to the RPZLA database, also as defined in the config.
@@ -337,7 +337,7 @@ It is useful (though costs a penalty) if you have:
 
 All error and informational messages are sent to the system log.
 
-rpzla-apache.pl is expected to be run as a daemon launched by init.
+rpzla-apache is expected to be run as a daemon launched by init.
 
 =head1 OPTIONS
 

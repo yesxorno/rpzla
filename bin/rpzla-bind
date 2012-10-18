@@ -356,24 +356,24 @@ __END__
 
 =head1 NAME
 
-rpzla-bind.pl - transfer Apache log entries to the RPZLA database
+rpzla-bind - transfer Apache log entries to the RPZLA database
 
 =head1 SYNOPSIS
 
-        rpzla-bind.pl <-h|-m|-V>
+        rpzla-bind <-h|-m|-V>
 or
-        rpzla-bind.pl [-d] [-t] [-c /path/to/config]
+        rpzla-bind [-d] [-t] [-c /path/to/config]
 
 =head1 DESCRIPTION
 
-rpzla-bind.pl watches the bind log as defined in the config
+rpzla-bind watches the bind log as defined in the config
 and extracts logs that indicate an RPZ response to a domain
 lookup.
 
 The format of the bind log file is important.  See the general
 RPZLA documentation for more details.
 
-rpzla-bind.pl is expected to be run as a daemon launched by init.
+rpzla-bind is expected to be run as a daemon launched by init.
 
 =head1 OPTIONS
 
