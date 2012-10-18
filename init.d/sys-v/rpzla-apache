@@ -29,7 +29,7 @@
 DIR=/usr/local/bin
 export PATH=$PATH:$DIR
 name='rpzla-apache'
-program='rpzla-apache.pl'
+program=$name
 lockfile=/var/lock/subsys/$name
 
 start() {

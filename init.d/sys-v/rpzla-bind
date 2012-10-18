@@ -29,7 +29,7 @@
 
 DIR=/usr/local/bin
 name='rpzla-bind'
-process='rpzla-bind.pl'
+process=$name
 program=$DIR/$process
 lockfile=/var/lock/subsys/$name
 
