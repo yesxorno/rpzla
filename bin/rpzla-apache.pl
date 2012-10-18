@@ -11,6 +11,7 @@ use Daemon::Daemonize;
 use DBI;
 use File::Tail;
 use Sys::Syslog qw/:standard :macros/;
+use Carp;
 
 # command-line options
 use constant OPT_CONFIG		=> 'config';
@@ -90,9 +91,8 @@ sub parse_command_line()
         }
 	if ( ! -f $options{OPT_CONFIG()} or ! -r $options{OPT_CONFIG()} )
 	{
-		err("Config file argument '" . $options{OPT_CONFIG()} . 
+		croak("Config file argument '" . $options{OPT_CONFIG()} . 
 			"' does not exist or cant be read.");
-		exit(1);
 	}
         return $retval;
 }

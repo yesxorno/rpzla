@@ -3,9 +3,7 @@ INSTALL		:=	install -m 755
 BIN_DIR		:=	/usr/local/bin
 
 BIN_SRCS	:=	\
-			rpzla-apache-filter.pl	\
 			rpzla-apache.pl		\
-			rpzla-apache-to-db.pl	\
 			rpzla-bind-filter.pl	\
 			rpzla-bind.pl		\
 			rpzla-bind-to-db.pl	\
