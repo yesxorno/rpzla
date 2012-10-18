@@ -108,7 +108,7 @@ sub parse_log_entry($)
 {
 	my $s = shift;
 	my $retval = undef;
-	if ( $s =~ m/([\w-]+) ([\d:]+) ([\w.:]+) ([\w.:-]+) ([\w.-]+) ([\d]+) "GET ([\w\/.?\&\-]+) HTTP\/[^"]*"/ )
+	if ( $s =~ m/([\w-]+) ([\d:]+) ([\w.:]+) ([\w.:-]+) ([\w.-]+) ([\d]+) "GET ([\w\/.?\=\&\-]+) HTTP\/[^"]*"/ )
 	{
 		my ($date, $time, $ip, $lookup, $site, $http_response, $path ) =
 			($1, $2, $3, $4, $5, $6, $7);
