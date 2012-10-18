@@ -66,10 +66,6 @@ sub debug($)
 	{
 		print STDERR OUR_IDENT() . ": debug: $s\n";
 	}
-	else
-	{
-		syslog(LOG_INFO, "debug: %s", $s);
-	}
 }
 
 sub parse_command_line()
@@ -145,14 +141,15 @@ sub parse_log_entry($)
 	my ($hms, $fractional_seconds) = split('[.]', $time);
 	# Ignore client port number
 	my ($ip, $port) = split('[#]', $ip_full);
-	# Check queries match
-	if ( $query1 ne $query2 )
-	{
-		err("Unexpected: name of query domain differs.  Bad parsing.");
-		err("Query 1: '$query1' != Query 2: '$query2'");
-	}
+	# Check queries match:  upon a multi-CNAME, the change.  Hmmm.
+	# Choose the last.
+	# if ( $query1 ne $query2 )
+	# {
+		# err("Unexpected: name of query domain differs.  Bad parsing.");
+		# err("Query 1: '$query1' != Query 2: '$query2'");
+	# }
 	# strip the query from the font of the rpz zone name
-	elsif ( $zone_full !~ m/$query1[.]([\w\.]+)/ )
+	if ( $zone_full !~ m/$query2[.]([\w\.]+)/ )
 	{
 		err("Unexpected: query domain not a part of the rpz zone name");
 		err("Query domain: '$query1', Zone name (full): '$zone_full'");
@@ -167,7 +164,7 @@ sub parse_log_entry($)
 	( 
 		$parsed 
 	? 
-		join(OUTPUT_SEP(), $date, $hms, $ip, $query1, $rpz_zone)
+		join(' ', $date, $hms, $ip, $query1, $rpz_zone)
 	:
 		undef
 	);
@@ -245,6 +242,8 @@ sub main()
 	%config = $conf->getall();
 	# shorthand
 	my $in_debug = defined($options{OPT_DEBUG()});
+	# Autoflush on for debug
+	$| = 1 if ( $in_debug );
 	# Off to daemon land
 	my $daemon_opts = {};
 	if ( $in_debug )
@@ -259,8 +258,8 @@ sub main()
 	#
 	# Cut down wait time on log checking for debug mode
 	#
-	my $interval = 10.0;  #default
-	my $max_inter = 60.0; #default
+	my $interval = 1.0;  #default
+	my $max_inter = 4.0; #default
 	if ( $in_debug )
 	{
 		$interval = 1.0;
