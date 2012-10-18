@@ -7,7 +7,7 @@ use Pod::Usage;
 use File::Basename;
 use English;
 use Config::General;
-use Daemon::Daemonize;
+use Proc::Daemon;
 use DBI;
 use File::Tail;
 use Sys::Syslog qw/:standard :macros/;
@@ -22,8 +22,8 @@ use constant OPT_TEST		=> 'test';
 use constant OPT_VERSION        => 'Version';
 
 use constant CONFIG_DEFAULT	=> '/etc/rpzla/rpzla.conf';
-use constant COMMIT_EVERY	=> 3;
 use constant OUR_IDENT		=> 'rpzla-apache';  # identity for syslog
+use constant COMMIT_EVERY	=> 3;
 
 my $version = '0.1';
 my $ME = basename($PROGRAM_NAME);
@@ -49,19 +49,26 @@ my @valid_files =
 	'stylesheet.css',
 	'background.html',
 );
+# The config
+my %config = ();
 
 # We need access to this for the signal handler cleanup (be nice)
 my $dbh = undef;
 my $sth = undef;
 
+# shorthand for syslog calls
 sub err($) { my $s = shift; syslog(LOG_ERR, "%s", $s); };
-sub msg($) { my $s = shift; syslog(LOG_INFO, "%s", $s); };
+sub info($) { my $s = shift; syslog(LOG_INFO, "%s", $s); };
 sub debug($) 
 { 
 	my $s = shift; 
 	if ( defined($options{OPT_DEBUG()}) )
 	{
-		syslog(LOG_DEBUG, "%s", $s); 
+		print STDERR OUR_IDENT() . ": debug: $s\n";
+	}
+	else
+	{
+		syslog(LOG_INFO, "debug: %s", $s);
 	}
 }
 
@@ -101,20 +108,12 @@ sub parse_log_entry($)
 {
 	my $s = shift;
 	my $retval = undef;
-	if ( $s =~ m/([\w-]+) ([\w:]+) ([\d.:]+) ([\w.:-]+) ([\w.-]+) ([\d]+) "GET ([\w\/.?&]+) HTTP\/[^"]*"/ )
+	if ( $s =~ m/([\w-]+) ([\d:]+) ([\w.:]+) ([\w.:-]+) ([\w.-]+) ([\d]+) "GET ([\w\/.?\&\-]+) HTTP\/[^"]*"/ )
 	{
 		my ($date, $time, $ip, $lookup, $site, $http_response, $path ) =
 			($1, $2, $3, $4, $5, $6, $7);
-		my $valid_request = 0;
-		for my $valid ( @valid_files )
-		{
-			if ( $path eq "/$valid" )
-			{
-				$valid_request = 1;
-				last;
-			}
-		}
-		if ( not $valid_request )
+		# we ignore visits directly to the warning site
+		if ( $site ne $config{'walled-garden'}->{'domain'} )
 		{
 			# log it
 			$retval = join(' ', $date, $time, $ip, $lookup, $site);
@@ -167,6 +166,7 @@ sub commit_now()
 	if ( defined($dbh) )
 	{
 		$dbh->commit();
+		debug("Committed to DB");
 	}
 }
 
@@ -183,17 +183,45 @@ sub sig_handler($)
 
 $SIG{INT} = $SIG{TERM} = \&sig_handler;
 
+# Load config, daemonise, do much work for debug mode, connect
+# to log file and database (stop if in test mode), and start 
+# shipping matched data.
 sub main()
 {
 	my $retval = 1;
 	# Load config
 	my $conf = new Config::General($options{OPT_CONFIG()});
-	my %config = $conf->getall();
+	%config = $conf->getall();
+	# shorthand
+	my $in_debug = defined($options{OPT_DEBUG()});
+	# Off to daemon land
+	my $daemon_opts = {};
+	if ( $in_debug )
+	{
+		$daemon_opts->{'child_STDERR'} = '/tmp/rpzla-apache.err';
+	}
+	Proc::Daemon::Init($daemon_opts);
 	# Establish syslog
 	openlog(OUR_IDENT(), '', LOG_DAEMON);
 	# Access Apache log
 	my $apache_log = $config{'walled-garden'}->{log};
-	my $tail = File::Tail->new($apache_log);
+	#
+	# Cut down wait time on log checking for debug mode
+	#
+	my $interval = 10.0;  #default
+	my $max_inter = 60.0; #default
+	if ( $in_debug )
+	{
+		$interval = 1.0;
+		$max_inter = 4.0;
+	}
+	my $tail = File::Tail->new
+	(
+		name		=> $apache_log,
+		interval	=> $interval,
+		maxinterval	=> $max_inter,
+		debug		=> 1,
+	);
 	if ( not defined($tail) )
 	{
 		err("Could not access the log: $apache_log");
@@ -210,24 +238,49 @@ sub main()
 		);
 		exit(1);
 	}
-	# If testing, done.
+	# If test mode, done.
 	if ( defined($options{OPT_TEST()}) )
 	{
 		info("Test successful, exiting.");
 		sig_handler('USR1');
 	}
-	# Log --> DB
+	#
+	# Start shipping data
+	#
+	my $start_msg = "starting";
+	if ( $options{OPT_DEBUG()} )
+	{
+		$start_msg .= ": with debug on";
+	}
+	info($start_msg);
 	my $line = undef;
 	my $uncommitted = 0;
 	$sth = prepare_insert($dbh);
-	Daemon::Daemonize->daemonize();
+	#
+	# Commit every time in debug mode
+	#
+	my $commit_interval = COMMIT_EVERY();
+	if ( $in_debug )
+	{
+		$commit_interval = 1;
+	}
+	debug("First call to tail->read: tailing the log file ...");
 	while ( defined($line = $tail->read()) )
 	{
 		chomp($line);
+		debug("Found in log: $line");
 		my $data = parse_log_entry($line);
-		db_insert($sth, $_);
-		$uncommitted++;
-		if ( COMMIT_EVERY() <= $uncommitted )
+		if ( defined($data) )
+		{
+			debug("Insert to DB: $data");
+			db_insert($sth, $data);
+			$uncommitted++;
+		}
+		else
+		{
+			debug("Ignored.");
+		}
+		if ( $commit_interval <= $uncommitted )
 		{
 			commit_now();
 			$uncommitted = 0;
@@ -259,7 +312,7 @@ rpzla-apache.pl - transfer Apache log entries to the RPZLA database
 
         rpzla-apache.pl <-h|-m|-V>
 or
-        rpzla-apache.pl [-d] [-c /path/to/config]
+        rpzla-apache.pl [-d] [-t] [-c /path/to/config]
 
 =head1 DESCRIPTION
 
@@ -296,7 +349,8 @@ The path to the config file.  Defaults to /etc/rpzla/rpzla.conf
 
 =item B<-d, --debug>
 
-Include debug log information.
+Debug mode.  When deamonising send stderr to /tmp/rpzla-apache.err.
+All info and regular error messages are still sent to syslog.
 
 =item B<-h, -?, --help>
 
@@ -304,7 +358,15 @@ Prints a help message.
 
 =item B<-m, --man, --manual>
 
-Prints the manual page.
+Prints the B<manual page>.
+
+=item B<-t, --test>
+
+Test mode.  Will only check that the log file, and database, as
+specified in the config can be read and connected to, respectively,
+and then exit.
+
+Can be combined with --debug.
 
 =item B<-V, --Version>
 
