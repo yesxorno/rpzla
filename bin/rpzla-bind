@@ -66,6 +66,10 @@ sub debug($)
 	{
 		print STDERR OUR_IDENT() . ": debug: $s\n";
 	}
+	else
+	{
+		syslog(LOG_INFO, "debug: %s", $s);
+	}
 }
 
 sub parse_command_line()
@@ -125,15 +129,22 @@ sub parse_log_entry($)
 	#
 	# where things in parens are matched for extration.
 	#
-	my $format = '([\w\-\:\.]+) ([\w\:\.]+) client ([\w\:\.\#]+) [(]([\w\.]+)[)]: rpz [\w]+ [\w]+ rewrite ([\w\.]+) via ([\w\.]+)';
-	if ( $line !~ m/$format/ )
+	# 18-Oct-2012 
+	# 15:25:09.176 
+	# client 
+	# 2001:878:200:2000:c000::2#56895: 
+	# rpz QNAME CNAME rewrite 
+	# www.camprofilexo.com 
+	# via 
+	# www.camprofilexo.com.rpz.spamhaus.org
+	if ( $line !~ m/([\w\-:.]+) ([\w:.]+) client ([\w\-:.#]+) rpz [\w]+ [\w]+ rewrite ([\w\-.]+) via ([\w\-.]+)/ )
 	{
-		err("Unexpected format from BIND log " . $options{OPT_FILE()});
+		err("Unexpected format from BIND log " . $config{bind}->{log});
 		err("Line was: $line");
 		# abort
 		return undef;
 	}
-	my ($date, $time, $ip_full, $query1, $query2, $zone_full) = 
+	my ($date, $time, $ip_full, $query, $zone_full) = 
 		($1, $2, $3, $4, $5, $6);
 	my $rpz_zone = undef;
 	# Split out core details from entries combined with more data
@@ -141,18 +152,11 @@ sub parse_log_entry($)
 	my ($hms, $fractional_seconds) = split('[.]', $time);
 	# Ignore client port number
 	my ($ip, $port) = split('[#]', $ip_full);
-	# Check queries match:  upon a multi-CNAME, the change.  Hmmm.
-	# Choose the last.
-	# if ( $query1 ne $query2 )
-	# {
-		# err("Unexpected: name of query domain differs.  Bad parsing.");
-		# err("Query 1: '$query1' != Query 2: '$query2'");
-	# }
 	# strip the query from the font of the rpz zone name
-	if ( $zone_full !~ m/$query2[.]([\w\.]+)/ )
+	if ( $zone_full !~ m/$query[.]([\w\.]+)/ )
 	{
 		err("Unexpected: query domain not a part of the rpz zone name");
-		err("Query domain: '$query1', Zone name (full): '$zone_full'");
+		err("Query domain: '$query', Zone name (full): '$zone_full'");
 	}
 	else
 	{
@@ -164,7 +168,7 @@ sub parse_log_entry($)
 	( 
 		$parsed 
 	? 
-		join(' ', $date, $hms, $ip, $query1, $rpz_zone)
+		join(' ', $date, $hms, $ip, $query, $rpz_zone)
 	:
 		undef
 	);
