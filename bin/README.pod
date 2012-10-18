@@ -9,23 +9,22 @@ that are the 'glue' for RPZLA.
 Each script is described in its 'man page' which can be invoked
 by calling the script with the '-m' option.
 
-E.g for the rplza-bind.pl script:
+E.g for the rplza-bind script:
 
-	rpzla-bind.pl -m
+	rpzla-bind -m
 
 will show its man page which describes its purpose, usage etc..
 
 =head2 Log to DB Reformatting
 
-The two log scrapers, one for bind and the other for apache, are
-composed of a 'filter' that tail's the relevant log and then
-reformats that (extracting only the desired information) into
-a form that the 'to-db' script wishes to see.
+The two log scrapers, one for bind and the other for apache, 
+'tail' a log file (as specified in the config) and then ship
+'matching' entries to the DB (again defined in the config).
 
-One can see, by examining the 'to-db' scripts that they do almost
-nothing (join the date and time into one string) and then send
-that data as an insert to the DB.
-
-The key to this is that the data from the logs come in a format
-expected by the 'filter' scripts.  As RPZ is a fairly new thing
-for BIND these may change.
+'Matching' means that we expect this log entry in the DB.  For
+BIND logs, that is pretty much everything.  For Apache, it gets
+a little more complex.  One should be able to visit the 'walled
+garden' (wherein is probably delivered information about the nature 
+of the censorship and why it is happening) without generating
+a DB entry.  This distinction is based on the 'official' name
+of the walled garden, and is, again, defined in the config.
