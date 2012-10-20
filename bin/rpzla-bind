@@ -66,10 +66,10 @@ sub debug($)
 	{
 		print STDERR OUR_IDENT() . ": debug: $s\n";
 	}
-	else
-	{
-		syslog(LOG_INFO, "debug: %s", $s);
-	}
+	# else
+	# {
+	# 	syslog(LOG_INFO, "debug: %s", $s);
+	# }
 }
 
 sub parse_command_line()
