@@ -29,7 +29,7 @@ sub init()
 	{
 		die("Need self->ident defined.");
 	}
-	$self->_prep_install_sql(PREP_INSTALL_SQL);
+	$self->_prep_insert_sql(PREP_INSTALL_SQL);
 	$self->_open_syslog();
 	$self->_load_config();
 	$self->_log_path($self->_config->{'walled-garden'}->{'log'});
@@ -71,3 +71,5 @@ sub _parse_log_entry($)
 	}
 	return $retval;
 }
+
+1;

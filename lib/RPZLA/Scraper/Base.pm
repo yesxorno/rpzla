@@ -11,8 +11,6 @@ use File::Tail;
 use Sys::Syslog qw/:standard :macros/;
 use Class::Struct;
 
-use constant CONFIG_DEFAULT	=> '/etc/rpzla/rpzla.conf';
-
 #####################################################################
 #
 # Purpose:
@@ -57,9 +55,10 @@ struct
 (
 	$packagename => 
 	{
+                'ident'         => '$',  # name to identify with syslog
 		'config_path'	=> '$',  # any non-default config location
-		'debug'		=> '$',  # debug mode (undef for NO DEBUG)
-		'test'		=> '$',  # test mode (undef for NO TEST)
+		'debug_mode'	=> '$',  # debug mode (undef for NO DEBUG)
+		'test_mode'	=> '$',  # test mode (undef for NO TEST)
 		#
 		# Internals (dont touch)
 		#
@@ -106,7 +105,7 @@ sub init()
 {
 	my $self = shift;
 	my $sane = 1;
-	if ( not defined($self->_ident()) )
+	if ( not defined($self->ident()) )
 	{
 		$self->err("Must supply ident for use in syslog");
 		$sane = 0;
@@ -120,40 +119,38 @@ sub init()
 	{
 		$self->exit_now(1);
 	}
-	if ( not defined($self->debug()) )
+	if ( not defined($self->debug_mode()) )
 	{
-		$self->debug(0);
+		$self->debug_mode(0);
 	}
 	else
 	{
-		$self->debug(1);
+		$self->debug_mode(1);
 	}
 	my $log_opts = { };
 	$log_opts->{name} 	= $self->_log_path;
 	#
 	# Decide who frequently to check and recheck the log file
 	#
-	if ( $self->debug() )
+	if ( $self->debug_mode() )
 	{
 		$log_opts->{interval}		= 1.0,
 		$log_opts->{maxinterval}	= 3.0,
-		$log_opts->{debug}		= 1,
 	}
 	else
 	{
 		$log_opts->{interval}		= 10.0,
 		$log_opts->{maxinterval}	= 60.0,
-		$log_opts->{debug}		= 1,
 	}
 	$self->_log_opts($log_opts);
 	if ( not defined($self->config_path()) )
 	{
-		$self->config_path(CONFIG_DEFAULT());
+		$self->err("config_path must be defined.");
+                $self->exit_now(1);
 	}
-	$self->_log_connect();
-	$self->_db_connect();
+	$self->_connect_all();
 	# If test mode, done.
-	if ( $self->_test )
+	if ( $self->test_mode )
 	{
 		$self->info("Test successful, exiting.");
 		$self->exit_now(0);
@@ -167,9 +164,9 @@ sub info($) { my ($self, $s) = @_; syslog(LOG_INFO, "%s", $s); };
 sub debug($) 
 { 
 	my ($self, $s) = @_;
-	if ( $self->debug )
+	if ( $self->debug_mode )
 	{
-		print STDERR $self->_ident . ": debug: $s\n";
+		print STDERR $self->ident . ": debug: $s\n";
 	}
 }
 
@@ -227,16 +224,16 @@ sub main_loop()
 	my $self = shift;
 	# Off to daemon land
 	my $daemon_opts = {};
-	if ( $self->debug )
+	if ( $self->debug_mode )
 	{
-		$daemon_opts->{'child_STDERR'} = '/tmp/' .$self->_ident. '.err';
+		$daemon_opts->{'child_STDERR'} = '/tmp/' .$self->ident. '.err';
 	}
 	Proc::Daemon::Init($daemon_opts);
 	#
 	# Start shipping data
 	#
 	my $start_msg = "starting";
-	if ( $options{OPT_DEBUG()} )
+	if ( $self->debug_mode )
 	{
 		$start_msg .= ": with debug on";
 	}
@@ -244,33 +241,33 @@ sub main_loop()
 	my $line = undef;
 	my $uncommitted = 0;
 	my $commit_interval = $self->_config->{db}->{commit_interval};
-	if ( $self->debug )
+	if ( $self->debug_mode )
 	{
 		$commit_interval = 1;
 	}
-	$self->debug("First call to log->read: tailing the log file ...");
+	$self->debug_mode("First call to log->read: tailing the log file ...");
 	while ( defined($line = $self->_log->read()) )
 	{
 		chomp($line);
-		$self->debug("Found in log: $line");
+		$self->debug_mode("Found in log: $line");
 		# the log parser may wish to ignore the log entry it
 		# is given.  Its returns undef and we honour that.
 		my $data = $self->_parse_log_entry($line);
 		if ( defined($data) )
 		{
-			$self->debug("Insert to DB: $data");
-			$self->_db_insert($sth, $data);
+			$self->debug_mode("Insert to DB: $data");
+			$self->_db_insert($self->_sth, $data);
 			$uncommitted++;
 		}
 		else
 		{
-			$self->debug("Ignored.");
+			$self->debug_mode("Ignored.");
 		}
 		if ( $commit_interval <= $uncommitted )
 		{
 			$self->_commit_now();
 			$uncommitted = 0;
-			$sth = $self->_prepare_insert();
+			$self->_sth = $self->_prepare_insert();
 		}
 	}
 	# UNREACHED (expect to run forever, until signal received)
@@ -289,7 +286,7 @@ sub main_loop()
 sub _open_syslog()
 {
 	my $self = shift;
-	openlog($self->_ident, '', LOG_DAEMON);
+	openlog($self->ident, '', LOG_DAEMON);
 }
 
 # Load the config: expected to be used by super-classes BEFORE this our init()
@@ -312,14 +309,14 @@ sub _load_config()
 #
 # General 'dis/connect to db and log' routine
 #
-sub connect_all()
+sub _connect_all()
 {
 	my $self = shift;
 	$self->_db_connect();
 	$self->_log_connect();
 }
 
-sub disconnect_all()
+sub _disconnect_all()
 {
 	my $self = shift;
 	$self->_db_disconnect();
@@ -332,7 +329,7 @@ sub disconnect_all()
 sub _prepare_insert()
 {
 	my $self = shift;
-	my $self->_sth($self->_dbh->prepare($self->_prep_insert_sql));
+	$self->_sth($self->_dbh->prepare($self->_prep_insert_sql));
 	if ( not defined($self->_sth) )
 	{
 		$self->err
@@ -363,7 +360,7 @@ sub _commit_now()
 	if ( defined($self->_dbh) )
 	{
 		$self->_dbh->commit();
-		$self->debug("Committed to DB");
+		$self->debug_mode("Committed to DB");
 	}
 }
 
@@ -377,7 +374,7 @@ sub _db_connect()
 	my $user = $creds->{'user'};
 	my $pass = $creds->{'pass'};
 	my $target = 'dbi:' . $type . ':dbname=' . $name . ';host=' . $host;
-	$$self->_dbh(DBI->connect($target, $user, $pass, {AutoCommit => 0}));
+	$self->_dbh(DBI->connect($target, $user, $pass, {AutoCommit => 0}));
 	if ( not defined($self->_dbh) )
 	{
 		$self->err
@@ -405,7 +402,7 @@ sub _db_disconnect()
 sub _log_connect()
 {
 	my $self = shift;
-	$self->_log(File::Tail->new(%{$self->_log_opts});
+	$self->_log(File::Tail->new(%{$self->_log_opts}));
 	if ( not defined($self->_log) )
 	{
 		$self->err
@@ -426,43 +423,4 @@ sub _log_disconnect()
 	undef($log);
 }
 
-
-#
-# Override this methods
-#
-
-sub _parse_log_entry($)
-{
-	my $s = shift;
-	my $retval = undef;
-	my $valid_sites = $config{'walled-garden'}->{'valid_sites'}->{'domain'};
-	if ( $s =~ m/([\w-]+) ([\d:]+) ([\w.:]+) ([\w.:-]+) ([\w.-]+) ([\d]+) "GET ([\w\/.?\=\&\%\-]+) HTTP\/[^"]*"/ )
-	{
-		my ($date, $time, $ip, $lookup, $site, $http_response, $path ) =
-			($1, $2, $3, $4, $5, $6, $7);
-		my $log_it = 0;
-		# Config::General will return an array if there are multiple
-		# 'domain's, or a string if only one.  Take care of that.
-		if ( '' eq ref($valid_sites) )
-		{
-			$log_it = ($site ne $valid_sites);
-		}
-		else
-		{
-			$log_it = 1;
-			for my $valid (@{$valid_sites})
-			{
-				if ( $site eq $valid )
-				{
-					$log_it = 0;
-					last;
-				}
-			}
-		}
-		if ( $log_it )
-		{
-			$retval = join(' ', $date, $time, $ip, $lookup, $site);
-		}
-	}
-	return $retval;
-}
+1;

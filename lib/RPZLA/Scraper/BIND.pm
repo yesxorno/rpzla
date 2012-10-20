@@ -29,14 +29,14 @@ sub init()
 	{
 		die("Need self->ident defined.");
 	}
-	$self->_prep_install_sql(PREP_INSTALL_SQL);
+	$self->_prep_insert_sql(PREP_INSTALL_SQL);
 	$self->_open_syslog();
 	$self->_load_config();
 	$self->_log_path($self->_config->{'bind'}->{'log'});
 	$self->SUPER::init();
 }
 
-sub parse_log_entry($)
+sub _parse_log_entry($)
 {
 	my ($self, $line) = @_;
 	my $parsed = 0;
@@ -55,12 +55,12 @@ sub parse_log_entry($)
 	# www.camprofilexo.com 
 	# via 
 	# www.camprofilexo.com.rpz.spamhaus.org
-	if ( $line !~ m/([\w\-:.]+) ([\w:.]+) client ([\w\-:.#]+) rpz [\w]+ [\w]+ rewrite ([\w\-.]+) via ([\w\-.]+)/ )
+	if ( $line !~ m/([\w\-]+) ([\w:.]+) client ([\w\-:.#]+) rpz [\w]+ [\w]+ rewrite ([\w\-.]+) via ([\w\-.]+)/ )
 	{
 		$self->err
 		(
 			"Unexpected format from BIND log " .
-			$self->_config{bind}->{log}
+			$self->_config->{bind}->{log}
 		);
 		$self->err("Line was: $line");
 		# abort
@@ -95,3 +95,5 @@ sub parse_log_entry($)
 		undef
 	);
 }
+
+1;

@@ -17,6 +17,8 @@ use constant OPT_MANUAL		=> 'manual';
 use constant OPT_TEST		=> 'test';
 use constant OPT_VERSION        => 'Version';
 
+use constant CONFIG_DEFAULT	=> '/etc/rpzla/rpzla.conf';
+
 my $version = '0.1';
 my $ME = basename($PROGRAM_NAME);
 my %options;
@@ -79,8 +81,8 @@ sub main()
 	(
 		ident		=> $ME,
 		config_path 	=> $options{OPT_CONFIG()},
-		debug 		=> $options{OPT_DEBUG()},
-		test 		=> $options{OPT_TEST()},
+		debug_mode	=> $options{OPT_DEBUG()},
+		test_mode 	=> $options{OPT_TEST()},
 	);
 	$scraper->init();
 	$scraper->main_loop();

@@ -8,6 +8,9 @@ logger:
 	$(MAKE) -C etc install
 	$(MAKE) -C bin install
 
+lib:	.dummy
+	$(MAKE) -C lib install
+
 bind:	logger
 	$(MAKE) -C init.d/sys-v bind
 
