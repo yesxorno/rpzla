@@ -66,10 +66,6 @@ sub debug($)
 	{
 		print STDERR OUR_IDENT() . ": debug: $s\n";
 	}
-	else
-	{
-		syslog(LOG_INFO, "debug: %s", $s);
-	}
 }
 
 sub parse_command_line()
@@ -108,14 +104,32 @@ sub parse_log_entry($)
 {
 	my $s = shift;
 	my $retval = undef;
-	if ( $s =~ m/([\w-]+) ([\d:]+) ([\w.:]+) ([\w.:-]+) ([\w.-]+) ([\d]+) "GET ([\w\/.?\=\&\-]+) HTTP\/[^"]*"/ )
+	my $valid_sites = $config{'walled-garden'}->{'valid_sites'}->{'domain'};
+	if ( $s =~ m/([\w-]+) ([\d:]+) ([\w.:]+) ([\w.:-]+) ([\w.-]+) ([\d]+) "GET ([\w\/.?\=\&\%\-]+) HTTP\/[^"]*"/ )
 	{
 		my ($date, $time, $ip, $lookup, $site, $http_response, $path ) =
 			($1, $2, $3, $4, $5, $6, $7);
-		# we ignore visits directly to the warning site
-		if ( $site ne $config{'walled-garden'}->{'domain'} )
+		my $log_it = 0;
+		# Config::General will return an array if there are multiple
+		# 'domain's, or a string if only one.  Take care of that.
+		if ( '' eq ref($valid_sites) )
 		{
-			# log it
+			$log_it = ($site ne $valid_sites);
+		}
+		else
+		{
+			$log_it = 1;
+			for my $valid (@{$valid_sites})
+			{
+				if ( $site eq $valid )
+				{
+					$log_it = 0;
+					last;
+				}
+			}
+		}
+		if ( $log_it )
+		{
 			$retval = join(' ', $date, $time, $ip, $lookup, $site);
 		}
 	}
