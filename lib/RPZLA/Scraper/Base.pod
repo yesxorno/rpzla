@@ -1,0 +1,72 @@
+
+=head1 NAME
+
+RPZLA::Scraper::Base - Base class for RPZLA log scrapers
+
+=head1 DESCRIPTION
+
+RPZLA pulls data from both a web server (Apache) and DNS
+recursive resolvers (BIND).  There is a process for parsing
+each log, and these processes are system daemons.
+
+Thus, a log parser needs to:
+
+  use syslog
+  disconnect from any terminal etc. (daemonize)
+  load the config file
+  connect to the database (and disconnect)
+  attach to the log file (and detach)
+  respond to signals for stop and reload config
+
+Responding to the 'reload config' signal means closing database
+and log file watching, reloading config and then reconnecting
+to the data source (log) and data destination (database).
+
+The action of the two types of scraper is identical apart from:
+
+  the location of the log file
+  the formation of the log line, and what we ignore
+
+This base class handles everything else (i.e all the stuff listed above)
+
+=head1 IMPLEMENTATION
+
+Sorry.  Crap use of Class::Struct. But its simple.  I like simple.
+
+=head1 Use by derived classes
+
+See the in file commentary in Base.pm.  
+
+The derived class needs to let Base know where the log file is.
+
+This is recorded in the config.  So, the derived class is 
+tasked with loading the config.  Because its doing that, it needs 
+also to initiate the syslog access.  Routines to do both of these
+things are provided here in the base class.  Just call them.
+
+Then, set the _log_path with what you learn from the config.
+
+Part two is log parsing and supplying the SQL statement to be
+used for establishing a prepared insert.  These are related.
+
+The number of (space separated) fields that you return from 
+your log parse function needs to match the insert.  (And you need
+to match the types etc.).
+
+Should be obvious.  Just check our the existing derived classes.
+
+Supply the SQL for the statement preparation (_prep_insert_sql)
+and supply the function for parsing a log entry and returning
+(_parse_log_entry).
+
+The base class does all the rest.
+
+=head1 SEE ALSO
+
+rpzla.conf, rpzla-apache(1), rpzla-bind(1)
+
+=head1 AUTHOR
+
+Hugo M. Connery 
+
+=cut

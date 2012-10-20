@@ -6,12 +6,8 @@ use Getopt::Long qw(:config default no_ignore_case);
 use Pod::Usage;
 use File::Basename;
 use English;
-use Config::General;
-use Proc::Daemon;
-use DBI;
-use File::Tail;
-use Sys::Syslog qw/:standard :macros/;
 use Carp;
+use RPZLA::Scraper::BIND;
 
 # command-line options
 use constant OPT_CONFIG		=> 'config';
@@ -20,10 +16,6 @@ use constant OPT_HELP           => 'help';
 use constant OPT_MANUAL		=> 'manual';
 use constant OPT_TEST		=> 'test';
 use constant OPT_VERSION        => 'Version';
-
-use constant CONFIG_DEFAULT	=> '/etc/rpzla/rpzla.conf';
-use constant OUR_IDENT		=> 'rpzla-apache';  # identity for syslog
-use constant COMMIT_EVERY	=> 3;
 
 my $version = '0.1';
 my $ME = basename($PROGRAM_NAME);
@@ -39,42 +31,8 @@ my $parse = GetOptions
         OPT_VERSION(),
 );
 
-# path requests to the warning site which we consider valid and
-# do NOT log (should really be in the config)
-my @valid_files = 
-(
-	'index.html',
-	'censorship.html',
-	'favicon.ico',
-	'stylesheet.css',
-	'background.html',
-);
-# The config
-my %config = ();
-
-# We need access to this for the signal handler cleanup (be nice)
-my $dbh = undef;  # DB handle
-my $sth = undef;  # Insert statement handle
-my $tail = undef; # File::Tail 
-my $tail_opts = 
-{
-	name		=> undef,
-	interval	=> undef,
-	maxinterval	=> undef,
-	debug		=> 0,
-};
-
-# shorthand for syslog calls
-sub err($) { my $s = shift; syslog(LOG_ERR, "%s", $s); };
-sub info($) { my $s = shift; syslog(LOG_INFO, "%s", $s); };
-sub debug($) 
-{ 
-	my $s = shift; 
-	if ( defined($options{OPT_DEBUG()}) )
-	{
-		print STDERR OUR_IDENT() . ": debug: $s\n";
-	}
-}
+# our scraper object
+my $scraper = undef;
 
 sub parse_command_line()
 {
@@ -108,267 +66,26 @@ sub parse_command_line()
         return $retval;
 }
 
-sub load_config()
-{
-	my $conf = new Config::General($options{OPT_CONFIG()});
-	%config = $conf->getall();
-	if ( 0 == scalar(keys(%config)) )
-	{
-		err("Failure loading config");
-		exit_now(1);
-	}
-}
+sub sig_stop($) { my $sig = shift; $scraper->sig_stop($sig); }
+sub sig_reload($) { my $sig = shift; $scraper->sig_reload($sig); }
 
-sub parse_log_entry($)
-{
-	my $s = shift;
-	my $retval = undef;
-	my $valid_sites = $config{'walled-garden'}->{'valid_sites'}->{'domain'};
-	if ( $s =~ m/([\w-]+) ([\d:]+) ([\w.:]+) ([\w.:-]+) ([\w.-]+) ([\d]+) "GET ([\w\/.?\=\&\%\-]+) HTTP\/[^"]*"/ )
-	{
-		my ($date, $time, $ip, $lookup, $site, $http_response, $path ) =
-			($1, $2, $3, $4, $5, $6, $7);
-		my $log_it = 0;
-		# Config::General will return an array if there are multiple
-		# 'domain's, or a string if only one.  Take care of that.
-		if ( '' eq ref($valid_sites) )
-		{
-			$log_it = ($site ne $valid_sites);
-		}
-		else
-		{
-			$log_it = 1;
-			for my $valid (@{$valid_sites})
-			{
-				if ( $site eq $valid )
-				{
-					$log_it = 0;
-					last;
-				}
-			}
-		}
-		if ( $log_it )
-		{
-			$retval = join(' ', $date, $time, $ip, $lookup, $site);
-		}
-	}
-	return $retval;
-}
-
-sub prepare_insert($)
-{
-	my $dbh = shift;
-	my $sth = $dbh->prepare
-	(
-		"INSERT INTO web " .
-		"(datetime, client_ip, client_hostname, query_domain) " .
-		"values " .
-		"(?,?,?,?)"
-	);
-	return $sth;
-}
-
-sub db_insert($$)
-{
-	my ($sth, $s) = @_;
-	my @values = split(' ', $s);
-	my $date = shift(@values);
-	my $time = shift(@values);
-	# PostrgreSQL is beautiful: no date/time conversion required
-	return $sth->execute($date . ' ' . $time, @values);
-}
-
-sub commit_now()
-{
-	if ( defined($sth) )
-	{
-		$sth->finish();
-	}
-	if ( defined($dbh) )
-	{
-		$dbh->commit();
-		debug("Committed to DB");
-	}
-}
-
-sub db_connect($)
-{
-	my $creds = shift;
-	my $type = $creds->{'type'};
-	my $host = $creds->{'host'};
-	my $name = $creds->{'name'};
-	my $user = $creds->{'user'};
-	my $pass = $creds->{'pass'};
-	my $target = 'dbi:' . $type . ':dbname=' . $name . ';host=' . $host;
-	$dbh = DBI->connect($target, $user, $pass, {AutoCommit => 0});
-	if ( !defined($dbh) )
-	{
-		err
-		(
-			"Failure connecting to database: check config: " . 
-			$options{OPT_CONFIG()}
-		);
-		exit_now(1);
-	}
-	$sth = prepare_insert($dbh);
-	if ( !defined($sth) )
-	{
-		err("Failure establishing insert statement handle.");
-		exit_now(1);
-	}
-	return 1;
-}
-
-sub db_disconnect()
-{
-	commit_now();
-	$dbh->disconnect() if ( defined($dbh) );
-	$dbh = undef;
-}
-
-sub log_connect()
-{
-	$tail = File::Tail->new(%{$tail_opts});
-	if ( not defined($tail) )
-	{
-		err("Could not access the log: " . $tail_opts->{name});
-		exit_now(1);
-	}
-}
-
-sub log_disconnect()
-{
-	# hope that this closed the previous log handle, free's memory etc.
-	undef($tail);
-}
-
-# exit
-sub exit_now($)
-{
-	my $status = shift;
-	db_disconnect();
-	closelog();
-	exit($status);
-}
-
-# Handle cleanup on signalling (i.e /etc/init.d/rc.d/rpzla-apache stop)
-sub sig_stop($)
-{
-	my $sig = shift;
-	info("Exiting upon receipt of signal '$sig'");
-	exit_now(0);
-}
-
-# Handle config reload
-sub sig_reload_config($)
-{
-	my $sig = shift;
-	info("Reload config request from signal '$sig'");
-	db_disconnect();
-	log_disconnect();
-	info("DB commit and disconnected; reloading config and reconnecting");
-	load_config();
-	db_connect($config{db});
-	log_connect();
-	info("Reconnected to log and database.  Resuming");
-	return 1;
-}
-
-# Capture signals
 $SIG{INT} = $SIG{TERM} = \&sig_stop;
-$SIG{HUP} = \&sig_reload_config;
+$SIG{HUP} = \&sig_reload;
 
-# Load config, daemonise, do much work for debug mode, connect
-# to log file and database (stop if in test mode), and start 
-# shipping matched data.
 sub main()
 {
 	my $retval = 1;
-	# Establish syslog
-	openlog(OUR_IDENT(), '', LOG_DAEMON);
-	# Load config
-	load_config();
-	# shorthand
-	my $in_debug = defined($options{OPT_DEBUG()});
-	# Off to daemon land
-	my $daemon_opts = {};
-	if ( $in_debug )
-	{
-		$daemon_opts->{'child_STDERR'} = '/tmp/rpzla-apache.err';
-	}
-	Proc::Daemon::Init($daemon_opts);
-	# Access Apache log
-	my $apache_log = $config{'walled-garden'}->{log};
-	#
-	# Cut down wait time on log checking for debug mode
-	#
-	my $interval = 10.0;  #default
-	my $max_inter = 60.0; #default
-	if ( $in_debug )
-	{
-		$interval = 1.0;
-		$max_inter = 4.0;
-	}
-	$tail_opts->{name} = $apache_log;
-	$tail_opts->{interval} = $interval;
-	$tail_opts->{maxinterval} = $max_inter;
-	$tail_opts->{debug} = $in_debug;
-	log_connect();
-	# Connect to DB
-	db_connect($config{db});
-	# If test mode, done.
-	if ( defined($options{OPT_TEST()}) )
-	{
-		info("Test successful, exiting.");
-		sig_handler('USR1');
-	}
-	#
-	# Start shipping data
-	#
-	my $start_msg = "starting";
-	if ( $options{OPT_DEBUG()} )
-	{
-		$start_msg .= ": with debug on";
-	}
-	info($start_msg);
-	my $line = undef;
-	my $uncommitted = 0;
-	#
-	# Commit every time in debug mode
-	#
-	my $commit_interval = COMMIT_EVERY();
-	if ( $in_debug )
-	{
-		$commit_interval = 1;
-	}
-	debug("First call to tail->read: tailing the log file ...");
-	while ( defined($line = $tail->read()) )
-	{
-		chomp($line);
-		debug("Found in log: $line");
-		my $data = parse_log_entry($line);
-		if ( defined($data) )
-		{
-			debug("Insert to DB: $data");
-			db_insert($sth, $data);
-			$uncommitted++;
-		}
-		else
-		{
-			debug("Ignored.");
-		}
-		if ( $commit_interval <= $uncommitted )
-		{
-			commit_now();
-			$uncommitted = 0;
-			$sth = prepare_insert($dbh);
-		}
-	}
-	# UNREACHED (expect to run forever, until signal received)
-	info("Unexpected exit of main loop (log file disappeared ?). Exiting.");
-	exit_now(0);
-	# Definitely UNREACHED
-	return 1;
+	$scraper = RPZLA::Scraper::Aapche->new
+	(
+		ident		=> $ME,
+		config_path 	=> $options{OPT_CONFIG()},
+		debug 		=> $options{OPT_DEBUG()},
+		test 		=> $options{OPT_TEST()},
+	);
+	$scraper->init();
+	$scraper->main_loop();
+	# UNREACHED
+	return $retval;
 }
 
 parse_command_line();
