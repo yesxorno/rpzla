@@ -32,12 +32,13 @@ name='rpzla-bind'
 process=$name
 program=$DIR/$process
 lockfile=/var/lock/subsys/$name
+config=/etc/rpzla/rpzla.conf
 
 start() {
 	[ "$EUID" != "0" ] && exit 4
 	[ "$NETWORKING" = "no" ] && exit 1
 	[ -x $program ] || exit 5
-	[ -r /etc/rpzla/rpzla.conf ] || exit 6
+	[ -r $config ] || exit 6
 
 	# Start daemon.
 	echo -n $"Starting $name: "

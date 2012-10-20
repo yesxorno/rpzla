@@ -29,14 +29,16 @@
 DIR=/usr/local/bin
 export PATH=$PATH:$DIR
 name='rpzla-apache'
-program=$name
+program=$DIR/$name
+process=$name
 lockfile=/var/lock/subsys/$name
+config=/etc/rpzla/rpzla.conf
 
 start() {
 	[ "$EUID" != "0" ] && exit 4
 	[ "$NETWORKING" = "no" ] && exit 1
-	[ -x $DIR/$program ] || exit 5
-	[ -r /etc/rpzla/rpzla.conf ] || exit 6
+	[ -x $program ] || exit 5
+	[ -r $config ] || exit 6
 
 	# Start daemon.
 	echo -n $"Starting $name: "
