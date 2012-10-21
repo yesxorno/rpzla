@@ -11,6 +11,8 @@ use File::Tail;
 use Sys::Syslog qw/:standard :macros/;
 use Class::Struct;
 
+use constant DEFAULT_COMMIT_INTERVAL	=>	3;
+
 #####################################################################
 #
 # Purpose:
@@ -19,15 +21,12 @@ use Class::Struct;
 #
 # Provides:
 #
-#   Config file loading
-#
-#   DB connection, statement handlers, and insertion
-#
-#   Log file tailing
-#
-#   Signal handlers for 'stop' and reload config
-#
-#   Main processing loop
+#  * Config file loading
+#  * syslog initialisation
+#  * DB connection, statement handlers, insertion, and commiting
+#  * Log file tailing
+#  * Signal handlers for 'stop' and reload config
+#  * Main processing loop
 #
 #####################################################################
 #
@@ -40,7 +39,7 @@ use Class::Struct;
 #
 # 3. Set the SQL statement for preparing the insert (_prep_insert_sql)
 #
-# 4. Their 'overridden' init must call this base classes init.
+# 4. Their 'overridden' init must call this base classes init (after the above)
 #
 # 5. Override the 'parse_log_entry' method with that which is appropriate
 #    for their log file.  Note that the number of whitespace separated
@@ -55,23 +54,18 @@ struct
 (
 	$packagename => 
 	{
+		#
+		# These to be set by the caller (of a derived class)
+		#
                 'ident'         => '$',  # name to identify with syslog
 		'config_path'	=> '$',  # any non-default config location
 		'debug_mode'	=> '$',  # debug mode (undef for NO DEBUG)
-		'test_mode'	=> '$',  # test mode (undef for NO TEST)
 		#
-		# Internals (dont touch)
+		#####################################################
 		#
-		'_config'	=> '$',  # loaded config
-		# the File::Tail object for watching the log
-		'_log'		=> '$',  
-		'_log_opts'	=> '$',
-		'_dbh'		=> '$',  # DB connection handle
-		'_sth'		=> '$',  # prepared statement handle
+		# Things that must be set by derived classes in their init()
+		# before calling ours.
 		#
-		# Things that must be set by derived classes:
-		#
-		'_ident'		=> '$',  # name for syslog
 		# Prepare insert SQL
 		#
 		'_prep_insert_sql' => '$',
@@ -79,20 +73,23 @@ struct
 		# Path the log file
 		#
 		'_log_path'	=> '$',
+		#
+		#####################################################
+		#
+		# Internals (dont touch)
+		#  
+		# The loaded config hash
+		'_config'	=> '$',
+		# the File::Tail object for watching the log
+		'_log'		=> '$',  
+		# options which we provide to File::Tail (varies with debug)
+		'_log_opts'	=> '$',
+		# Database and statement handles
+		'_dbh'		=> '$',
+		'_sth'		=> '$',
+		#
 	}
 );
-
-# path requests to the warning site which we consider valid and
-# do NOT log (should really be in the config)
-my @valid_files = 
-(
-	'index.html',
-	'censorship.html',
-	'favicon.ico',
-	'stylesheet.css',
-	'background.html',
-);
-
 
 #####################################################################
 #
@@ -104,21 +101,61 @@ my @valid_files =
 sub init()
 {
 	my $self = shift;
+	#
+	# Sanity checks
+	#
 	my $sane = 1;
-	if ( not defined($self->ident()) )
+	if ( not defined($self->ident) )
 	{
 		$self->err("Must supply ident for use in syslog");
 		$sane = 0;
 	}
-	if ( not defined($self->_config()) )
+	if ( not defined($self->_config) )
 	{
 		$self->err("Config not loaded.");
+		$sane = 0;
+	}
+	if ( not defined($self->config_path()) )
+	{
+		$self->err("config_path must be defined.");
+                $sane = 0;
+	}
+	if ( not defined($self->_log_path) )
+	{
+		$self->err("log path not defined.");
+		$sane = 0;
+	}
+	elsif ( ! (-f $self->_log_path and -r $self->_log_path) )
+	{
+		$self->err("log path not readable regular file.");
+		$sane = 0;
+	}
+	my $db = $self->_config->{'db'};
+	if 
+	(
+		not defined($db->{'type'})
+	or
+		not defined($db->{'host'})
+	or
+		not defined($db->{'name'})
+	or
+		not defined($db->{'user'})
+	or
+		not defined($db->{'pass'})
+	)
+	{
+		$self->err
+		(
+			"Must have all DB config (except port): " .
+			"type, host, name, user and pass.  Something missing."
+		);
 		$sane = 0;
 	}
 	if ( not $sane )
 	{
 		$self->exit_now(1);
 	}
+	# undef means no debug, else debug
 	if ( not defined($self->debug_mode()) )
 	{
 		$self->debug_mode(0);
@@ -130,7 +167,7 @@ sub init()
 	my $log_opts = { };
 	$log_opts->{name} 	= $self->_log_path;
 	#
-	# Decide who frequently to check and recheck the log file
+	# Decide how frequently to check and recheck the log file
 	#
 	if ( $self->debug_mode() )
 	{
@@ -143,18 +180,6 @@ sub init()
 		$log_opts->{maxinterval}	= 60.0,
 	}
 	$self->_log_opts($log_opts);
-	if ( not defined($self->config_path()) )
-	{
-		$self->err("config_path must be defined.");
-                $self->exit_now(1);
-	}
-	$self->_connect_all();
-	# If test mode, done.
-	if ( $self->test_mode )
-	{
-		$self->info("Test successful, exiting.");
-		$self->exit_now(0);
-	}
 	return 1;
 }
 
@@ -166,7 +191,9 @@ sub debug($)
 	my ($self, $s) = @_;
 	if ( $self->debug_mode )
 	{
-		print STDERR $self->ident . ": debug: $s\n";
+		# this may look strangs, but some syslog are by default
+		# configured to *ignore* debug messages, so we use LOG_INFO
+		syslog(LOG_INFO, ": debug: $s\n");
 	}
 }
 
@@ -176,7 +203,7 @@ sub debug($)
 #
 # Use as follows:
 #
-# Say you have a super-class of this base called 'scraper' which
+# Say you have a derived class of this base called '$scraper' which
 # is a global (or is in scope) and have defined:
 #
 # sub sig_stop($) { my $sig = shift; $scraper->sig_stop($sig); }
@@ -203,6 +230,10 @@ sub sig_reload($)
 	$self->_disconnect_all();
 	$self->info("disconnected all; reloading config and reconnecting");
 	$self->_load_config();
+	#
+	# I dont know why, be after reconnecting to the log, we get a double
+	# load of the first line of the next submitted log entry ????
+	#
 	$self->_connect_all();
 	$self->info("Reconnected to log and database.  Resuming");
 	return 1;
@@ -219,20 +250,20 @@ sub exit_now($)
 	exit($status);
 }
 
+#
+# This you call after init(), and we start doing our job.
+#
 sub main_loop()
 {
 	my $self = shift;
-	# Off to daemon land
-	my $daemon_opts = {};
-	if ( $self->debug_mode )
-	{
-		$daemon_opts->{'child_STDERR'} = '/tmp/' .$self->ident. '.err';
-	}
-	Proc::Daemon::Init($daemon_opts);
-	#
-	# Start shipping data
-	#
 	my $start_msg = "starting";
+	#
+	# Connect to DB and log
+	#
+	$self->_connect_all();
+	#
+	# Say hello to syslog
+	#
 	if ( $self->debug_mode )
 	{
 		$start_msg .= ": with debug on";
@@ -241,33 +272,40 @@ sub main_loop()
 	my $line = undef;
 	my $uncommitted = 0;
 	my $commit_interval = $self->_config->{db}->{commit_interval};
+	if ( not defined($commit_interval) )
+	{
+		$commit_interval  = DEFAULT_COMMIT_INTERVAL();
+	}
 	if ( $self->debug_mode )
 	{
 		$commit_interval = 1;
 	}
-	$self->debug_mode("First call to log->read: tailing the log file ...");
+	$self->debug("First call to log->read: tailing the log file ...");
+	#
+	# Start moving data
+	#
 	while ( defined($line = $self->_log->read()) )
 	{
 		chomp($line);
-		$self->debug_mode("Found in log: $line");
+		$self->debug("Found in log: $line");
 		# the log parser may wish to ignore the log entry it
 		# is given.  Its returns undef and we honour that.
 		my $data = $self->_parse_log_entry($line);
 		if ( defined($data) )
 		{
-			$self->debug_mode("Insert to DB: $data");
-			$self->_db_insert($self->_sth, $data);
+			$self->debug("Insert to DB: '$data'");
+			$self->_db_insert($data);
 			$uncommitted++;
 		}
 		else
 		{
-			$self->debug_mode("Ignored.");
+			$self->debug("Ignored.");
 		}
 		if ( $commit_interval <= $uncommitted )
 		{
 			$self->_commit_now();
 			$uncommitted = 0;
-			$self->_sth = $self->_prepare_insert();
+			$self->_prepare_insert();
 		}
 	}
 	# UNREACHED (expect to run forever, until signal received)
@@ -282,14 +320,19 @@ sub main_loop()
 # Internal (Private) Methods
 #
 
-# Establish syslog
+##################################
+#
+# To be called by derived classes in THEIR init() method before calling ours.
+#
+
+# Establish syslog 
 sub _open_syslog()
 {
 	my $self = shift;
 	openlog($self->ident, '', LOG_DAEMON);
 }
 
-# Load the config: expected to be used by super-classes BEFORE this our init()
+# Load the config
 sub _load_config()
 {
 	my $self = shift;
@@ -305,6 +348,11 @@ sub _load_config()
 		$self->_config(\%config);
 	}
 }
+
+######################################################
+#
+# This class's internal methods (should not be needed by derived classes)
+#
 
 #
 # General 'dis/connect to db and log' routine
@@ -323,6 +371,7 @@ sub _disconnect_all()
 	$self->_log_disconnect();
 }
 
+#############################
 #
 # Database handling routines
 #
@@ -336,6 +385,7 @@ sub _prepare_insert()
 		(
 			"Failure preparing insert statement handle."
 		);
+		$self->err($DBI::errstr);
 		$self->exit_now(1);
 	}
 }
@@ -347,20 +397,24 @@ sub _db_insert($)
 	my $date = shift(@values);
 	my $time = shift(@values);
 	# PostrgreSQL is beautiful: no date/time conversion required
-	return $self->_sth->execute($date . ' ' . $time, @values);
+	my $retval = $self->_sth->execute($date . ' ' . $time, @values);
+	if ( not defined($retval) )
+	{
+		$self->err("Error inserting row to DB.");
+		$self->err($DBI::errstr);
+		$self->info("Aborting");
+		$self->exit_now(1);
+	}
+	return  $retval;
 }
 
 sub _commit_now()
 {
 	my $self = shift;
-	if ( defined($self->_sth) )
-	{
-		$self->_sth->finish();
-	}
 	if ( defined($self->_dbh) )
 	{
 		$self->_dbh->commit();
-		$self->debug_mode("Committed to DB");
+		$self->debug("Committed to DB");
 	}
 }
 
@@ -373,8 +427,15 @@ sub _db_connect()
 	my $name = $creds->{'name'};
 	my $user = $creds->{'user'};
 	my $pass = $creds->{'pass'};
-	my $target = 'dbi:' . $type . ':dbname=' . $name . ';host=' . $host;
-	$self->_dbh(DBI->connect($target, $user, $pass, {AutoCommit => 0}));
+	# Only use port if specified
+	my $port = '';
+	if ( defined($creds->{'port'}) and 0 < length($creds->{'port'}) )
+	{
+		$port = ";port=" . $creds->{'port'};
+	}
+	my $target = "dbi:$type:dbname=$name;host=$host" . $port;
+	my $dbi_attr = {AutoCommit=>0, PrintError=>0};
+	$self->_dbh(DBI->connect($target, $user, $pass, $dbi_attr));
 	if ( not defined($self->_dbh) )
 	{
 		$self->err
@@ -382,6 +443,7 @@ sub _db_connect()
 			"Failure connecting to database: check config: " . 
 			$self->config_path
 		);
+		$self->err($DBI::errstr);
 		$self->exit_now(1);
 	}
 	$self->_prepare_insert();
@@ -396,6 +458,7 @@ sub _db_disconnect()
 	$self->_dbh(undef);
 }
 
+#############################
 #
 # Log handling routines
 #
@@ -421,6 +484,55 @@ sub _log_disconnect()
 	my $log = $self->_log();
 	$self->_log(undef);
 	undef($log);
+}
+
+
+#############################
+#
+# Main routine to be overridden by derived classes.
+#
+# Skeleton:
+#
+sub _parse_log_entry($)
+{
+	my ($self, $line) = @_;
+	#
+	# Look at $line.
+	#
+	# check that it makes sense and that you wish to insert to DB.
+	#
+	# if so, cut out what you need to match the insert statement
+	# return as a whitespace delimited string of fields
+	#
+	# if you dont want it inserted into the DB, return undef
+	#
+	# if you want to abort, do:
+	#
+	# $self->err("Something horrible happened");
+	# $self->exit_now(1)
+	#
+	# In pseudo code:
+	#
+	my $retval = undef;
+	if ( $self->_all_is_good($line) )
+	{
+		my @fields = $self->parse_out_fields($line);
+		$retval = join(' ', @fields);
+	}
+	else
+	{
+		if ( $self->_is_disaster($line) )
+		{
+			$self->err("disaster ...");
+			$self->exit_now(1);
+		}
+		else
+		{
+			# ignore line
+			$retval = undef;
+		}
+	}
+	return $retval;
 }
 
 1;

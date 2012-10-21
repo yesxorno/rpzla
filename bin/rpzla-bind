@@ -9,12 +9,13 @@ use English;
 use Carp;
 use RPZLA::Scraper::BIND;
 
+use Proc::Daemon;
+
 # command-line options
 use constant OPT_CONFIG		=> 'config';
 use constant OPT_DEBUG		=> 'debug';
 use constant OPT_HELP           => 'help';
 use constant OPT_MANUAL		=> 'manual';
-use constant OPT_TEST		=> 'test';
 use constant OPT_VERSION        => 'Version';
 
 use constant CONFIG_DEFAULT	=> '/etc/rpzla/rpzla.conf';
@@ -29,7 +30,6 @@ my $parse = GetOptions
         OPT_DEBUG(),
         OPT_HELP() . '|?',  # allow -? or --? for help
         OPT_MANUAL(),
-        OPT_TEST(),
         OPT_VERSION(),
 );
 
@@ -82,9 +82,13 @@ sub main()
 		ident		=> $ME,
 		config_path 	=> $options{OPT_CONFIG()},
 		debug_mode	=> $options{OPT_DEBUG()},
-		test_mode 	=> $options{OPT_TEST()},
 	);
 	$scraper->init();
+	if ( not defined($options{OPT_DEBUG()}) )
+	{
+		my $daemon_opts = {};
+		Proc::Daemon::Init($daemon_opts);
+	}
 	$scraper->main_loop();
 	# UNREACHED
 	return $retval;
@@ -139,14 +143,6 @@ Prints a help message.
 =item B<-m, --man, --manual>
 
 Prints the B<manual page>.
-
-=item B<-t, --test>
-
-Test mode.  Will only check that the log file, and database, as
-specified in the config can be read and connected to, respectively,
-and then exit.
-
-Can be combined with --debug.
 
 =item B<-V, --Version>
 
