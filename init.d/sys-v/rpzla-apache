@@ -5,7 +5,7 @@
 #
 # chkconfig: - 58 74
 # description: 		Push BIND RPZ resolution data to a central database.
-#			See github.com/yesxorno/rpzla
+#			See https://github.com/yesxorno/rpzla.git
 
 ### BEGIN INIT INFO
 # Provides: rpzla-apache

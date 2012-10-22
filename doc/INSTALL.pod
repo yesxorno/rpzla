@@ -252,11 +252,16 @@ in the RDBMS, and they you can see it on the Analysis site.
 
 B<NOTE>: The init scripts are untested.  Work to be done.
 
-In all cases (BIND and Apache scrapers) you the perl Daemon::Daemonize 
-library must be available.  If not, install from CPAN:
+In all cases (BIND and Apache scrapers) you the perl Proc::Daemon
+library must be available.  Also, Config::General and File::Tail.
+If not, install from CPAN:
 
 	perl -MCPAN -e shell
 	cpan> install Daemon::Daemonize
+	...
+	cpan> install File::Tail
+	...
+	cpan> install Config::General
 	...
 	cpan> quit
 

@@ -15,9 +15,11 @@ INSTALL		:=	install -m 755
 all:		install
 
 install:	$(CGI_DIR) $(CGI_TARGETS)
-	cp ../../etc/rpzla.conf $(CGI_DIR)
 	cp -r Mojolicious public $(CGI_DIR)
+	@echo "use make install-config if you wish to do that"
 
+install-config:
+	cp ../../etc/rpzla.conf $(CGI_DIR)
 clobber:
 	rm -f $(CGI_TARGETS)
 	rm -rf $(CGI_BIN)/Mojolicious

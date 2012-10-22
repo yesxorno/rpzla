@@ -3,6 +3,16 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 use DBI;
 
+
+#
+#  Change of TACK:
+#
+#  Schema / minimal privileges are too hard for now.
+#
+#  There is the use of 'schema' in many selection routines.
+#
+#  It is ignored for now, but left in place.
+
 ######################################################################
 #
 # Data gathering for RPZ Log Analysis.  Database connection and
@@ -50,8 +60,10 @@ sub get_dbh($)
 	my $host = $cred->{host};
 	my $port = $cred->{port};
 	my $db   = $cred->{name};
-	my $user = $cred->{analysis}->{user};
-	my $pass = $cred->{analysis}->{pass};
+	my $user = $cred->{user};
+	my $pass = $cred->{pass};
+	# my $user = $cred->{analysis}->{user};
+	# my $pass = $cred->{analysis}->{pass};
 	my $dsn = "DBI:$type:database=$db;host=$host";
 	if ( 0 < length($port) )
 	{
@@ -106,7 +118,8 @@ sub get_db_data($$$)
 	return 
 	{
 		'title' => $title{$table},
-		'data' => select_all($dbh, "$schema.$table")
+		# 'data' => select_all($dbh, "$schema.$table")
+		'data' => select_all($dbh, $table)
 	};
 };
 
