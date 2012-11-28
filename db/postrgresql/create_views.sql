@@ -24,23 +24,23 @@ CREATE VIEW <<<<SCHEMA>>>>.dns_month AS
 
 CREATE VIEW <<<<SCHEMA>>>>.dns_day_trunc AS
 	SELECT  date_trunc('day', datetime), count(datetime), 
-		client_ip, query_domain, response_zone
+		client_ip, client_mac, query_domain, response_zone
 	FROM <<<<SCHEMA>>>>.dns_day
-	GROUP BY date_trunc('day', datetime), client_ip, query_domain, response_zone
+	GROUP BY date_trunc('day', datetime), client_ip, client_mac, query_domain, response_zone
 	ORDER BY date_trunc('day', datetime) DESC;
 
 CREATE VIEW <<<<SCHEMA>>>>.dns_week_trunc AS
 	SELECT  date_trunc('week', datetime), count(datetime), 
-		client_ip, query_domain, response_zone
+		client_ip, client_mac, query_domain, response_zone
 	FROM <<<<SCHEMA>>>>.dns_week
-	GROUP BY date_trunc('week', datetime), client_ip, query_domain, response_zone
+	GROUP BY date_trunc('week', datetime), client_ip, client_mac, query_domain, response_zone
 	ORDER BY date_trunc('week', datetime) DESC;
 
 CREATE VIEW <<<<SCHEMA>>>>.dns_month_trunc AS
 	SELECT  date_trunc('month', datetime), count(datetime), 
-		client_ip, query_domain, response_zone
+		client_ip, client_mac, query_domain, response_zone
 	FROM <<<<SCHEMA>>>>.dns_month 
-	GROUP BY date_trunc('month', datetime), client_ip, query_domain, response_zone
+	GROUP BY date_trunc('month', datetime), client_ip, client_mac, query_domain, response_zone
 	ORDER BY date_trunc('month', datetime) DESC;
 
 CREATE VIEW <<<<SCHEMA>>>>.dns_day_frequency AS
@@ -62,17 +62,17 @@ CREATE VIEW <<<<SCHEMA>>>>.dns_month_frequency AS
 	ORDER BY count(*) DESC;
 
 CREATE VIEW <<<<SCHEMA>>>>.dns_day_all AS
-	SELECT datetime, client_ip, query_domain, response_zone 
+	SELECT datetime, client_ip, client_mac, query_domain, response_zone 
 	FROM <<<<SCHEMA>>>>.dns_day
 	ORDER BY datetime DESC;
 
 CREATE VIEW <<<<SCHEMA>>>>.dns_week_all AS
-	SELECT datetime, client_ip, query_domain, response_zone 
+	SELECT datetime, client_ip, client_mac, query_domain, response_zone 
 	FROM <<<<SCHEMA>>>>.dns_week
 	ORDER BY datetime DESC;
 
 CREATE VIEW <<<<SCHEMA>>>>.dns_month_all AS
-	SELECT datetime, client_ip, query_domain, response_zone 
+	SELECT datetime, client_ip, client_mac, query_domain, response_zone 
 	FROM <<<<SCHEMA>>>>.dns_month
 	ORDER BY datetime DESC;
 
