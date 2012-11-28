@@ -86,11 +86,6 @@ sub get($)
 		if ( $self->cache_reload() )
 		{
 			$retval = $self->search($ip);
-			if ( not defined($retval) )
-			{
-				# Strange
-				$self->err("Cant find MAC for $ip");
-			}
 		}
 	}
 	return $retval;

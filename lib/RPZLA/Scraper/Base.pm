@@ -13,7 +13,7 @@ use Class::Struct;
 use RPZLA::Scraper::MAC_Cache;
 
 use constant DEFAULT_COMMIT_INTERVAL	=>	3;
-use constant MAC_UNKNOWN		=>	'unknown';
+use constant MAC_UNKNOWN		=>	'NULL'; # registers a NULL in DB
 
 #####################################################################
 #
@@ -271,6 +271,7 @@ sub get_mac($)
 	if ( not defined($retval) )
 	{
 		$retval = MAC_UNKNOWN();
+		$self->err("Unable to get MAC for IP: $ip");
 	}
 	return $retval;
 }
