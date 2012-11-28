@@ -1,7 +1,5 @@
 #!/usr/bin/perl 
 package RPZLA::Scraper::Cache-MAC;
-use base qw/RPZLA::Scraper::Cache-MAC/;
-use Net::ARP;
 
 use warnings;
 use strict;
@@ -12,7 +10,8 @@ use constant DEFAULT_RETAIN	=>	180;
 #
 # Purpose:
 #
-#	The BIND log scraper for RPZLA
+#	A Ethernet Link Layer Cache (non-portable; Linux only) 
+#	based on using 'ip neighbour show' (man 8 ip).
 #
 
 my $packagename = __PACKAGE__;
@@ -20,8 +19,6 @@ struct
 (
 	$packagename => 
 	{
-		'cache_retain'	=> '$', # in seconds, how long to retain
-		'dev'		=> '$', # e.g "eth0" the device to use
 		#
 		# Internal
 		#
@@ -36,32 +33,38 @@ struct
 # Make the SOAP / XML request for a service
 sub init
 {
-        my ($self, $retain) = @_;
-	if ( undef($retain) )
-	{
-		$self->cache_retain(DEFAULT_RETAIN());
-	}
-	else
-	{
-		$self->cache_retain($retain);
-	}
-	$self->_cache({});
+        my $self = shift;
+	return $self->cache_reset() and $self->cache_reload();
 }
 
-# Remove cache entries older than 'cache_retain'
-sub prune($)
+# make an empty cache
+sub cache_reset()
 {
-        my ($self, $time) = @_;
-	my $now = $self->now();
-	my $cache_retain = $self->cache_retain;
-	for my $ip ( keys($self->_cache()) )
+	my $self = shift;
+	$self->_cache({});
+	return 1;
+}
+
+# load what the OS has in its cache
+sub cache_reload()
+{
+	my $cmd = 'ip neighbour show';
+	my $retval = 0;
+	if ( open(ARP, "$cmd |") )
 	{
-		my $cache_value = $self->_cache{$ip}{'time'};
-		if ( $cache_retain < ($now - $cache_value) )
+		while ( <ARP> )
 		{
-			delete($self->_cache{$ip});
+			chomp;
+			my @entry = split(' ', $_);
+			my $ip = $entry[0];
+			my $mac = $entry[4];
+			my $status = $entry[5];  # ignored for now
+			$self->_cache->{$ip} = $mac;
 		}
+		close(ARP);
+		$retval = 1;
 	}
+	return $retval;
 }
 
 # Just look up a value
@@ -71,48 +74,24 @@ sub search($)
 	return $self->_cache->{$ip};
 }
 
-# Return the value (or look it up and store) for an IP
+# Force a cache reload if the entry is not in cache.
 sub get($)
 {
 	my ($self, $ip) = @_;
 	my $retval = $self->search($ip);
-	if ( not defined $retval )
+	if ( not defined($retval) )
 	{
-		if ( defined($retval = $self->lookup($ip)) )
+		if ( $self->cache_reload() )
 		{
-			$self->store($ip, $retval);
+			$retval = $self->search($ip);
+			if ( not defined($retval) )
+			{
+				# Strange
+				$self->err("Cant find MAC for $ip");
+			}
 		}
 	}
 	return $retval;
-}
-
-# Do the ARP lookup
-sub lookup($)
-{
-	my ($self, $ip) = @_;
-	my $mac = Net::ARP::arp_lookup($dev, $ip);
-	return $mac;
-}
-
-# Add a value to the cache 
-sub store($$)
-{
-	my ($self, $ip, $mac) = @_;
-	if ( defined($mac) )
-	{
-		my $time = $self->now();
-		$self->_cache{$ip} = 
-		{
-			'time'	=>	$time,
-			'mac'	=>	$mac,
-		};
-	}
-}
-
-# get current time
-sub now()
-{
-	return time();
 }
 
 1;

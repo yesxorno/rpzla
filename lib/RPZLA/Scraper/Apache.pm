@@ -66,7 +66,12 @@ sub _parse_log_entry($)
 		}
 		if ( $log_it )
 		{
-			$retval = join(' ', $date, $time, $ip, $lookup, $site);
+			my $mac = $self->get_mac($ip);
+			$retval = join
+			(
+				' ', 
+				$date, $time, $ip, $mac, $lookup, $site
+			);
 		}
 	}
 	return $retval;

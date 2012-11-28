@@ -163,6 +163,7 @@ sub _parse_bind_log($$)
 	{
 		# looks good, we ignore the port number
 		$field->[2] = $1;
+		$field->[3] = $self->get_mac($1);
 	}
 	else
 	{
@@ -181,11 +182,11 @@ sub _parse_bind_log($$)
 	if (  $rest =~ m/rpz [\w]+ [\w]+ rewrite ([\w\.\-]+) via ([\w\.\-]+)/ )
 	{
 		my $query = $1;
-		$field->[3] = $query;
+		$field->[4] = $query;
 		my $zone = $2;
 		if ( $zone =~ m/$query[.]([\w\.\-]+)/ )
 		{
-			$field->[4] = $1;
+			$field->[5] = $1;
 			return '';
 		}
 		else

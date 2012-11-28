@@ -10,8 +10,10 @@ use DBI;
 use File::Tail;
 use Sys::Syslog qw/:standard :macros/;
 use Class::Struct;
+use RPZLA::Scraper::Cache-MAC;
 
 use constant DEFAULT_COMMIT_INTERVAL	=>	3;
+use constant MAC_UNKNOWN		=>	'unknown';
 
 #####################################################################
 #
@@ -74,6 +76,13 @@ struct
 		#
 		'_log_path'	=> '$',
 		#
+		# Tools for use by derived classes
+		#
+		# MAC cache (call $self->_mac->get($ip_addr)) to get a MAC
+		# It may return undef, see the module.
+		#
+		'_mac'		=> '$',
+		#
 		#####################################################
 		#
 		# Internals (dont touch)
@@ -87,7 +96,6 @@ struct
 		# Database and statement handles
 		'_dbh'		=> '$',
 		'_sth'		=> '$',
-		#
 	}
 );
 
@@ -180,6 +188,10 @@ sub init()
 		$log_opts->{maxinterval}	= 60.0,
 	}
 	$self->_log_opts($log_opts);
+	# Create the MAC Cache
+	my $cache = new RPZLA::Scraper::Cache-MAC;
+	$cache->init();
+	$self->_mac($cache);
 	return 1;
 }
 
@@ -248,6 +260,19 @@ sub exit_now($)
 	closelog();
 	$self->info("Exiting: status == $status");
 	exit($status);
+}
+
+# Call the MAC cache to get the link local address for the supplied IPv[46]
+# address.  If it can't be found 'unknown' (string) is returned.
+sub get_mac($)
+{
+	my ($self, $ip) = @_;
+	my $retval = $self->_mac->get($ip);
+	if ( not defined($retval) )
+	{
+		$retval = MAC_UNKNOWN();
+	}
+	return $retval;
 }
 
 #
