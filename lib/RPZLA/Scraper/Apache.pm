@@ -6,9 +6,9 @@ use warnings;
 use strict;
 
 use constant	PREP_INSTALL_SQL	=> 	"INSERT INTO web " .
-	"(datetime, client_ip, client_hostname, query_domain) " .
+	"(datetime, client_ip, client_mac, client_hostname, query_domain) " .
 	"values " .
-	"(?,?,?,?)";
+	"(?,?,?,?,?)";
 
 #####################################################################
 #

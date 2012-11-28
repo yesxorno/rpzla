@@ -6,9 +6,9 @@ use warnings;
 use strict;
 
 use constant	PREP_INSTALL_SQL	=> 	"INSERT INTO dns " .
-	"(datetime, client_ip, query_domain, response_zone) " .
+	"(datetime, client_ip, client_mac, query_domain, response_zone) " .
 	"values " .
-	"(?,?,?,?)";
+	"(?,?,?,?,?)";
 
 #####################################################################
 #

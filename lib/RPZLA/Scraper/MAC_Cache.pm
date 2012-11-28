@@ -1,10 +1,10 @@
 #!/usr/bin/perl 
-package RPZLA::Scraper::Cache-MAC;
+package RPZLA::Scraper::MAC_Cache;
 
 use warnings;
 use strict;
 
-use constant DEFAULT_RETAIN	=>	180;
+use Class::Struct;
 
 #####################################################################
 #
@@ -34,7 +34,8 @@ struct
 sub init
 {
         my $self = shift;
-	return $self->cache_reset() and $self->cache_reload();
+	my $retval = $self->cache_reset() and $self->cache_reload();
+	return $retval;
 }
 
 # make an empty cache
@@ -48,6 +49,7 @@ sub cache_reset()
 # load what the OS has in its cache
 sub cache_reload()
 {
+	my $self = shift;
 	my $cmd = 'ip neighbour show';
 	my $retval = 0;
 	if ( open(ARP, "$cmd |") )

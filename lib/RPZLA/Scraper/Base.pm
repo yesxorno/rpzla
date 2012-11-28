@@ -10,7 +10,7 @@ use DBI;
 use File::Tail;
 use Sys::Syslog qw/:standard :macros/;
 use Class::Struct;
-use RPZLA::Scraper::Cache-MAC;
+use RPZLA::Scraper::MAC_Cache;
 
 use constant DEFAULT_COMMIT_INTERVAL	=>	3;
 use constant MAC_UNKNOWN		=>	'unknown';
@@ -189,7 +189,7 @@ sub init()
 	}
 	$self->_log_opts($log_opts);
 	# Create the MAC Cache
-	my $cache = new RPZLA::Scraper::Cache-MAC;
+	my $cache = new RPZLA::Scraper::MAC_Cache;
 	$cache->init();
 	$self->_mac($cache);
 	return 1;
