@@ -11,7 +11,7 @@ etc:
 	$(MAKE) -C etc install
 
 # Logger libraries
-lib:
+lib:	.dummy
 	$(MAKE) -C lib install
 
 # Logger executables

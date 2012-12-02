@@ -21,7 +21,6 @@ use constant	PREP_INSTALL_SQL	=> 	"INSERT INTO web " .
 #
 # Overridden methods
 
-# Make the SOAP / XML request for a service
 sub init()
 {
         my $self = shift;

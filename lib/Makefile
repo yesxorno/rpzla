@@ -4,7 +4,7 @@ export PERL_DIR	:=	$(PERL_BASE)
 
 all:	install
 
-install:	$(PERL_DIR)
+install:
 	$(MAKE) -C RPZLA $@
 
 clobber:

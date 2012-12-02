@@ -28,8 +28,9 @@ clean:
 clobber:
 	rm -f $(INIT_DIR)/rpzla-bind $(INIT_DIR)/rpzla-apache
 
-$(INIT_DIR)/%:	%
+$(INIT_DIR)/%:  %
 	$(INSTALL) $< $@
-	chkconfig $< on
+	$(TURN_ON) $< on
+
 
 .dummy:
