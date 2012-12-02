@@ -13,7 +13,7 @@ use Class::Struct;
 use RPZLA::Scraper::MAC_Cache;
 
 use constant DEFAULT_COMMIT_INTERVAL	=>	3;
-use constant MAC_UNKNOWN		=>	'NULL'; # registers a NULL in DB
+use constant UNKNOWN			=>	'unknown';
 
 #####################################################################
 #
@@ -270,9 +270,10 @@ sub get_mac($)
 	my $retval = $self->_mac->get($ip);
 	if ( not defined($retval) )
 	{
-		$retval = MAC_UNKNOWN();
-		$self->err("Unable to get MAC for IP: $ip");
+		$self->debug("Unable to get MAC for IP: $ip");
+		$retval = UNKNOWN();
 	}
+	# We expect that 'undef' gets converted to NULL on DB insert
 	return $retval;
 }
 
@@ -422,6 +423,16 @@ sub _db_insert($)
 	my @values = split(' ', $s);
 	my $date = shift(@values);
 	my $time = shift(@values);
+        # convert unknown to NULL
+	my ($i, $len) = (0, scalar(@values));
+	while ( $i < $len )
+	{
+		if ( UNKNOWN() eq $values[$i] )
+		{
+			$values[$i] = undef; # set to NULL for insert
+		}
+		$i++;
+	}
 	# PostrgreSQL is beautiful: no date/time conversion required
 	my $retval = $self->_sth->execute($date . ' ' . $time, @values);
 	if ( not defined($retval) )
