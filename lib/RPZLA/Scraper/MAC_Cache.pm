@@ -30,7 +30,6 @@ struct
 #
 # Overridden methods
 
-# Make the SOAP / XML request for a service
 sub init
 {
         my $self = shift;

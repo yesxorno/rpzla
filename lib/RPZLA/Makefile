@@ -9,6 +9,7 @@ all:		install
 install:	\
 		$(LIB_DIR)
 	$(MAKE) -C Scraper $@
+	$(MAKE) -C Analysis $@
 	
 
 clean:		
