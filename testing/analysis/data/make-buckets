@@ -1,0 +1,3 @@
+#!/bin/bash
+
+for file in cdn.iciba.ccgslb.com.cn.txt test-timestamp-all-queries.txt zoomsfx.com.txt ; do ../../../bin/rpzla-analysis-logarithmic -i trial -b 2 -s $file -d ./bucket; done

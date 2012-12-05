@@ -1,0 +1,3 @@
+#!/bin/bash
+
+for file in *.gp; do gnuplot ./$file; done

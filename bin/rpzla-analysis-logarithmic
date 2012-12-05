@@ -1,0 +1,305 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+use Getopt::Long qw(:config default no_ignore_case);
+use Pod::Usage;
+use File::Basename;
+use English;
+use Carp;
+use DateTime;
+use RPZLA::Analysis::BucketSpec;
+use RPZLA::Analysis::Bucket;
+use RPZLA::Analysis::Logarithmic;
+
+# command-line options
+use constant OPT_BUCKET_WIDTH	=> 'bucket-width';
+# use constant OPT_CONFIG		=> 'config';
+use constant OPT_DEST_DIR	=> 'destination-dir';
+use constant OPT_IDENT		=> 'identifier';
+use constant OPT_SRC_FILE	=> 'source-file';
+# general options
+use constant OPT_HELP           => 'help';
+use constant OPT_MANUAL		=> 'manual';
+use constant OPT_VERSION        => 'Version';
+
+use constant CONFIG_DEFAULT	=> '/etc/rpzla/rpzla.conf';
+
+my $version = '0.1';
+my $ME = basename($PROGRAM_NAME);
+my %options;
+my $parse = GetOptions
+(
+        \%options,
+        # OPT_CONFIG() . '=s',
+        OPT_BUCKET_WIDTH() . '=s',
+        OPT_IDENT() . '=s',
+        OPT_SRC_FILE() . '=s',
+        OPT_DEST_DIR() . '=s',
+        OPT_HELP() . '|?',  # allow -? or --? for help
+        OPT_MANUAL(),
+        OPT_VERSION(),
+);
+
+sub parse_command_line()
+{
+        my $retval = 1;
+        if ( !$parse )
+        {
+                pod2usage(2);
+        }
+        elsif ( $options{OPT_HELP()} )
+        {
+                pod2usage(0);
+        }
+        elsif ( $options{OPT_MANUAL()} )
+        {
+                pod2usage(-exitstatus => 0, -verbose => 2);
+        }
+        elsif ( $options{OPT_VERSION()} )
+        {
+                print "$ME v$version\n";
+                exit(0);
+        }
+#	if ( !defined($options{OPT_CONFIG()}) )
+#	{
+#		$options{OPT_CONFIG()} = CONFIG_DEFAULT();
+#	}
+#	if ( ! -f $options{OPT_CONFIG()} or ! -r $options{OPT_CONFIG()} )
+#	{
+#		croak("Config file argument '" . $options{OPT_CONFIG()} . 
+#			"' does not exist or cant be read.");
+#	}
+        if 
+	( 
+		!defined($options{OPT_SRC_FILE()})
+	or
+        	!defined($options{OPT_DEST_DIR()})
+	)
+	{
+                pod2usage(2);
+	}
+	else
+	{
+		my $file = $options{OPT_SRC_FILE()};
+		my $dir = $options{OPT_DEST_DIR()};
+		if ( not -f $file )
+		{
+			croak("Source file not readable '$file'");
+		}
+		if ( not -d $dir and not -w $dir )
+		{
+			croak("Output dir not a dir or not writable: '$dir'");
+		}
+	}
+        return $retval;
+}
+
+sub splat($)
+{
+	my $data = shift;
+	my $splat_until = 20;
+	my $i = 0;
+	for my $foo ( @{$data} )
+	{
+		printf("[%2d]  %6.2f\n", $i, $foo);
+		$i++;
+		last if ( $splat_until < $i );
+	}
+	print "\n";
+}
+
+sub duration_to_seconds($)
+{
+	my $d = shift;
+	return 
+	(
+		$d->days * 86400
+	+
+		$d->minutes * 60
+	+
+		$d->seconds
+	#
+	# ignore nano seconds
+	#
+	);
+}
+
+# Load the timestamps from the file
+# Create the differences and store
+sub load_diff($$)
+{
+	my ($diff, $file) = @_;
+	my $prev = undef;
+	my $curr = undef;
+	open(DATA, "< $file") or die("Cant open data");
+	while ( <DATA> )
+	{
+		chomp();
+		my $dt = undef;
+		if ( m/(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)/ )
+		{
+			my ($Y, $M, $D, $h, $m, $s) = ($1, $2, $3, $4, $5, $6);
+			$dt = DateTime->new
+			(
+				year => $Y, month => $M, day => $D,
+				hour => $h, minute => $m, second => $s,
+				time_zone => 'floating'
+			);
+		}
+		else
+		{
+			# Ignore things that done look like ISO date/times
+			next;
+		}
+		if ( not defined($prev) )
+		{
+			$prev = $dt;
+		}
+		else
+		{
+			$curr = $dt;
+			# Makes a DateTime::Duration object
+			my $delta = $curr - $prev;
+			# Stash
+			push(@{$diff}, duration_to_seconds($delta));
+			$prev = $curr;
+			$curr = undef;
+		}
+	}
+	close(DATA);
+}
+
+sub main()
+{
+	my $retval = 1;
+	my $bucket_width = $options{OPT_BUCKET_WIDTH()};
+	my $src = $options{OPT_SRC_FILE()};
+	my $base = basename($src);
+	my $dst = $options{OPT_DEST_DIR()};
+	my $id = $options{OPT_IDENT()};
+	my $spec = RPZLA::Analysis::BucketSpec->new
+	(
+		interval	=> $bucket_width,
+		min 		=> 0,
+		# Three hours of offsets is the limit
+		max		=> int(10800/$bucket_width),
+	);
+	$spec->check();
+	my $buck = RPZLA::Analysis::Bucket->new
+	(
+		spec		=> $spec,
+	);
+	$buck->init();
+	my @diff = ( );
+	load_diff(\@diff, $src);
+	for my $val ( @diff )
+	{
+		$buck->add($val);
+	}
+	my $bucket_out = "$dst/$base.$bucket_width.$id.unsorted.txt";
+	my $bucket_sorted = "$dst/$base.$bucket_width.$id.sorted.txt";
+	$buck->dump_to_file($bucket_out, 0);
+	$buck->dump_to_file($bucket_sorted, 1);
+	my $log = RPZLA::Analysis::Logarithmic->new
+	(
+		bucket		=> $buck,
+	);
+	if ( $log->is_log_decay() )
+	{
+		print "Found log decay.\n";
+	}
+	return $retval;
+}
+
+parse_command_line();
+
+exit( main() ? 0 : 1 );
+
+# UNREACHED
+
+__END__
+
+=head1 NAME
+
+rpzla-analysis-logarithmic - transfer Apache log entries to the RPZLA database
+
+=head1 SYNOPSIS
+
+        rpzla-analysis-logarithmic <-h|-m|-V>
+or
+        rpzla-analysis-logarithmic <-b N> <-i string> 
+		<-s file> <-d dir> [-c /path/to/config]
+
+=head1 DESCRIPTION
+
+rpzla-analysis-logarithmic takes a data source and 
+produces two graphs based on the time differences between
+events identified in the source data.  The first is a number
+of difference in time events grouped into buckets of time.
+
+The width of the buckets (seconds as an integer) must be 
+specified.
+
+The second graph is the same data, but sorted by the number
+of events in (height of) each bucket in decreasing order.
+
+=head1 OPTIONS
+
+=over
+
+=item B<-c, --config>
+
+The path to the config file.  Defaults to /etc/rpzla/rpzla.conf
+
+=item B<-b, --bucket-width>
+
+The width in seconds as an integer of the buckets to group differences.
+
+=item B<-i, --identifier>
+
+An identifier to use.  Is included both in the graph, and the output
+image file name.
+
+Spaces are replaced with dashes (-) when using in the image file name.
+
+=item B<-s, --source-file>
+
+The file that contains the data points: ISO date time format, optionally with fractional seconds, and no timezone data.  E.g 2012-11-28 15:04:58.127
+
+=item B<-s, --output-dir>
+
+The directory in which to create the graph.  The filename will be
+the basename of the source-file, the identifier, the buckets width, 
+all separated by '.' with a the image file type suffix (.png).
+
+=item B<-h, -?, --help>
+
+Prints a help message.
+
+=item B<-m, --man, --manual>
+
+Prints the B<manual page>.
+
+=item B<-V, --Version>
+
+Print the software version.
+
+=back
+
+=head1 SEE ALSO
+
+rpzla.conf
+
+https://github.com/yesxorno/rpzla.git
+
+=head1 AUTHOR
+
+Hugo M. Connery
+
+=head1 LICENSE
+
+GNU Public License version 2. (GPLv2)
+
+=cut
+
