@@ -240,7 +240,7 @@ sub get_data
 		my $comment = '';
 		if ( 0 == $num_rows )
 		{
-			$comment .= "No data in period.";
+			$comment .= "No matching data.";
 		}
 		elsif ( 1 == $num_rows )
 		{

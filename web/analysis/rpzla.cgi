@@ -130,9 +130,26 @@ helper render_page => sub
 	# Note that converting the first row from array ref to array is
 	# important, else when we 'shift' it, we *lose* the column name.
 	#
-	my @col_names = @{$data->{data}[0]};
-	# remove the datetime (no point matching that)
-	shift(@col_names);
+	my @col_names = ();
+	if ( defined($data->{data}[0]) and 0 < length(@{$data->{data}[0]}) )
+	{
+		@col_names = @{$data->{data}[0]};
+		# remove the datetime (no point matching that)
+		shift(@col_names);
+	}
+	else
+	{
+		push
+		(
+			@{$data->{'comment'}}, 
+			"<em>Note:</em> using Restrict can produce " .
+			"no data if your value does not match anything, or " .
+			"you have chosen a column and then changed the query " .
+			"type (other queries may not have that column).  " .
+			"Suggestion: clear the restrction and reload."
+		);
+	}
+		
 	$self->stash
 	(
 		page_data => $data,
