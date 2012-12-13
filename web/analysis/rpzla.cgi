@@ -123,26 +123,22 @@ helper render_page => sub
 	my ($self, $data) = @_;
 	my $radio = $self->radio_states();
 	my $where = $self->where_states();
+	# Get the column names from the queried data
+	# strip the 'datetime' column and give it to the 
+	# renderer for use in the Restrict column name pulldown (where clause)
 	#
-	# KLUDGE alert:
+	# Note that converting the first row from array ref to array is
+	# important, else when we 'shift' it, we *lose* the column name.
 	#
-	# Best solution is to actually use the page_data.
-	# It contains the column names.  We should only supply
-	# column names that are usable.  This will do for now:
-	my @cols =
-	(
-		'client_hostname',
-		'client_ip',
-		'client_mac',
-		'query_domain',
-		'response_zone',
-	);
+	my @col_names = @{$data->{data}[0]};
+	# remove the datetime (no point matching that)
+	shift(@col_names);
 	$self->stash
 	(
 		page_data => $data,
 		radio => $radio,
 		where => $where,
-		cols => \@cols,
+		cols => \@col_names,
 	);
 	$self->render('rpzla', format=>$radio->{'format'});
 };
