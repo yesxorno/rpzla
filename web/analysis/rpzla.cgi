@@ -368,17 +368,6 @@ __DATA__
 		</td>
 
 		<td>
-		<strong>Correlated Data</strong><br />
-		<input type="radio" name="data_type" value="cor_web" 
-		<%= $radio->{'data_type'} eq 'cor_web' ? 'checked' : '' %> />
-			DNS + Web
-		<br />
-		<input type="radio" name="data_type" value="cor_dns" 
-		<%= $radio->{'data_type'} eq 'cor_dns' ? 'checked' : '' %> />
-			DNS - Web
-		</td>
-
-		<td>
 		<strong>Period</strong><br />
 		<input type="radio" name="period" value="day" 
 		<%= $radio->{'period'} eq 'day' ? 'checked' : '' %>/>
@@ -435,12 +424,26 @@ __DATA__
 		value="<%= $where->{'col_value'} %>"
 		/>
 		</td>
+
+		<td>
+		<strong>Correlated Data</strong><br />(Experimental)<br />
+		<input type="radio" name="data_type" value="cor_web" 
+		<%= $radio->{'data_type'} eq 'cor_web' ? 'checked' : '' %> />
+			DNS + Web
+		<br />
+		<input type="radio" name="data_type" value="cor_dns" 
+		<%= $radio->{'data_type'} eq 'cor_dns' ? 'checked' : '' %> />
+			DNS - Web
+		</td>
+
 		</tr>
+
 		<tr>
 		<td colspan="6"> 
 			<center><input name="submit" type="submit" value="Load Selection" /></center>
 		</td>
 		</tr>
+
 		</table>
 		</center>
 	</form>
