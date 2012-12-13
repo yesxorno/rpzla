@@ -183,6 +183,17 @@ elimination logic, if you can make the database connection on the
 command-line using the credentials in the rpzla.conf file, but the 
 web site can't then you have a restriction specific to the web-site.
 
+You'll also need a few extra perl modules ...
+
+	perl -MCPAN -e shell
+	cpan> install Config::General
+	...
+	cpan> install String::Util
+	...
+	cpan> quit
+
+There may be more, add ...
+
 =head3 TESTING
 
 If you have uploaded the sample data, now is the time to check the

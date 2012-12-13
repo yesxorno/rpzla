@@ -7,8 +7,8 @@ body, html
 
 #wrap 
 {
-	width:1024px;
-	margin:0 auto;
+	/* width:1024px; */
+	margin:5 auto;
 }
 #header 
 {
@@ -32,17 +32,28 @@ body, html
 
 #main 
 {
-	float:right;
-	width: 844px;
+	/* float:right; */
+	/* width: 844px; */
 }
 
-#sidebar 
+#selection
 {
-	float:left;
-	width:180px;
+	/* float:left; */
+	/* width:180px; */
+}
+
+#selection td
+{
+	vertical-align: top;
+	padding:	15px;
+}
+
+#selection td.choose
+{
+	border: 1px solid black;
 }
 
 #footer {
-	clear:both;
+	/* clear:both; */
 }
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 use Mojolicious::Lite;
 use Config::General;
+use String::Util 'trim';
 
 use constant	PAGE_HOME 	=> "Welcome to RPZ Log Analysis";
 use constant	PAGE_HELP 	=> "Here is the help";
@@ -23,7 +24,6 @@ use constant	PAGE_HELP 	=> "Here is the help";
 # Note: This class adds methods to 'self'.  Thus, if you cant find the
 # self->some_method(arg,...) look in Mojolicious/Plugin/RpzlaData.pm
 plugin 'RpzlaData';
-
 
 # Inquire as to the states of the radio buttons and return a hash
 # with defaults set if no value chosen.
@@ -63,6 +63,42 @@ helper radio_states => sub
 	return \%radio;
 };
 
+# Inquire as to the states of the where clause
+#
+helper where_states => sub
+{
+	my $self = shift;
+	my %where = ();
+	my $col_name = $self->param('col_name');
+	my $col_op = $self->param('col_op');
+	my $col_value = trim($self->param('col_value'));
+	# Check for nasties
+	my $sane = 0;
+	if 
+	( 
+		# Should actually check that is matches the column names!!!
+		$col_name =~ m/\w+/
+	and
+		($col_op eq '=' or $col_op eq '!=')
+	and
+		length($col_value) > 0
+	and
+		# There may be better checks than this ...
+		$col_value !~ m/[ '";]/
+	)
+	{
+		$sane = 1;
+	}
+	if ( not $sane )
+	{
+		$col_name = $col_op = $col_value = undef;
+	}
+	$where{'col_name'} = $col_name;
+	$where{'col_op'} = $col_op;
+	$where{'col_value'} = $col_value;
+	return \%where;
+};
+
 sub radio_checked($$$)
 {
 	my ($hash, $key, $value) = @_;
@@ -86,10 +122,27 @@ helper render_page => sub
 {
 	my ($self, $data) = @_;
 	my $radio = $self->radio_states();
+	my $where = $self->where_states();
+	#
+	# KLUDGE alert:
+	#
+	# Best solution is to actually use the page_data.
+	# It contains the column names.  We should only supply
+	# column names that are usable.  This will do for now:
+	my @cols =
+	(
+		'client_hostname',
+		'client_ip',
+		'client_mac',
+		'query_domain',
+		'response_zone',
+	);
 	$self->stash
 	(
 		page_data => $data,
 		radio => $radio,
+		where => $where,
+		cols => \@cols,
 	);
 	$self->render('rpzla', format=>$radio->{'format'});
 };
@@ -194,8 +247,9 @@ post '/data' => sub
 	# grab the radio states
 	#
 	my $radio = $self->radio_states();
+	my $where = $self->where_states();
 	# fetch data
-	my $data = $self->get_data($db_creds, $radio);
+	my $data = $self->get_data($db_creds, $radio, $where);
 	# render
 	$self->render_page($data);
 };
@@ -280,14 +334,16 @@ __DATA__
 		<hr />
 	</div>
 
-	<div id="sidebar">
+	<div id="selection">
 
 	<!-- The big 'radio groups sidebar' should really be an object -->
-	<h3>Data and View Selection</h3>
 	<form name="choose" method="post" action="/data">
-		<input name="submit" type="submit" value="Load Selection" />
-		<br />
-		<br />
+		<center>
+		<table>
+
+		<tr>
+
+		<td id="choose">
 		<strong>Raw Data</strong><br />
 		<input type="radio" name="data_type" value="dns" 
 		<%= $radio->{'data_type'} eq 'dns' ? 'checked' : '' %> />
@@ -296,8 +352,9 @@ __DATA__
 		<input type="radio" name="data_type" value="web" 
 		<%= $radio->{'data_type'} eq 'web' ? 'checked' : '' %> />
 			Web
-		<br />
-		<br />
+		</td>
+
+		<td>
 		<strong>Correlated Data</strong><br />
 		<input type="radio" name="data_type" value="cor_web" 
 		<%= $radio->{'data_type'} eq 'cor_web' ? 'checked' : '' %> />
@@ -306,9 +363,9 @@ __DATA__
 		<input type="radio" name="data_type" value="cor_dns" 
 		<%= $radio->{'data_type'} eq 'cor_dns' ? 'checked' : '' %> />
 			DNS - Web
-		<br />
-		<br />
+		</td>
 
+		<td>
 		<strong>Period</strong><br />
 		<input type="radio" name="period" value="day" 
 		<%= $radio->{'period'} eq 'day' ? 'checked' : '' %>/>
@@ -321,8 +378,8 @@ __DATA__
 		<input type="radio" name="period" value="month" 
 		<%= $radio->{'period'} eq 'month' ? 'checked' : '' %>/>
 			Month
-		<br />
-		<br />
+		</td>
+		<td>
 		<strong>Summarize</strong><br />
 		<input type="radio" name="summarize" value="frequency" 
 		<%= $radio->{'summarize'} eq 'frequency' ? 'checked' : '' %>
@@ -333,8 +390,8 @@ __DATA__
 		<%= $radio->{'summarize'} eq 'all' ? 'checked' : '' %>
 		/>
 			All
-		<br />
-		<br />
+		</td>
+		<td>
 		<strong>Format</strong><br />
 		<input type="radio" name="format" value="html" 
 		<%= $radio->{'format'} eq 'html' ? 'checked' : '' %>
@@ -345,42 +402,70 @@ __DATA__
 		<%= $radio->{'format'} eq 'text' ? 'checked' : '' %>
 		/>
 			Text
+		</td>
+
+		<td>
+		<strong>Restrict as</strong><br />
+		<select name="col_name">
+		%	foreach my $col ( @$cols )
+		% {
+			<option <%= $where->{'col_name'} eq $col ? 'selected' : '' %> > <%= $col %> </option>
+		% }
+		</select>
+		&nbsp;
+		<select name="col_op">
+			<option>=</option>
+			<option>!=</option>
+		</select>
 		<br />
-		<br />
-		<input name="submit" type="submit" value="Load Selection" />
+		<input name="col_value" type="text" 
+		value="<%= $where->{'col_value'} %>"
+		/>
+		</td>
+		</tr>
+		<tr>
+		<td colspan="6"> 
+			<center><input name="submit" type="submit" value="Load Selection" /></center>
+		</td>
+		</tr>
+		</table>
+		</center>
 	</form>
-	<br />
 	</div>
+
+	<hr />
 
 	<div id="main">
 
-	<h3> <%= $page_data->{title} %> </h3>
+		<h3> <%= $page_data->{title} %> </h3>
 
-	% foreach my $c ( @{$page_data->{comment}} )
-	% {
-	<p> <%== $c %> </p>
-	% }
+		% foreach my $c ( @{$page_data->{comment}} )
+		% {
+		<p> <%== $c %> </p>
+		% }
 
-	<table width="100%" >
-	% my $i = 0;
-	% foreach my $row ( @{$page_data->{data}} )
-	% {
-		<tr>
-	%	foreach my $cell ( @$row )
-	%	{
-			<%== (0 == $i) ? '<th align="left">' : '<td>' %>
-			<%= $cell %>
-			<%== (0 == $i) ? '</th>' : '</td>' %>
-	%	}
-	%	$i++;
-		</tr>
-	% }
-	</table>
+		<table width="100%" >
+		% my $i = 0;
+		% foreach my $row ( @{$page_data->{data}} )
+		% {
+			<tr>
+		%	foreach my $cell ( @$row )
+		%	{
+				<%== (0 == $i) ? '<th align="left">' : '<td>' %>
+				<%= $cell %>
+				<%== (0 == $i) ? '</th>' : '</td>' %>
+		%	}
+		%	$i++;
+			</tr>
+		% }
+		</table>
 	</div>
+
 	<div id="footer">
 		<hr />
 		<p align="center">Standing on the Shoulders of Giants</p>
 	</div>
+
 
 </div>
 </body>

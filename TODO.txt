@@ -15,3 +15,26 @@
   and identify which switch port the client is connected to, which
   may change over time.  i.e track the location and movement of the
   computer.
+
+* Add 'select ... where ...' functionality:
+
+  Each client_mac, query_domain, client_ip, client_hostname
+  and responze_zone value becomes a link which specifies 
+  the column name  and the value to be included.
+
+  Use the same 'button groups' on the left, and then add a
+
+    "where <col_name> = <value>"
+
+  clause to the SQL query.  Simple.
+
+  Can add links to all, but that just make the page huge.
+
+  Better plan, create set on interfaces at the top:
+
+  <pulldown col_name> <pulldown = or !=> <text field>
+
+  add a new routine to rpzla.cgi which grabs this data and 
+  then pass it down to RPZLA web/analysis/Mojolicious/Plugin/RpzlaData.pm
+  if the text field is specified.  Thus user must cut/paste and 'Load Selecton'
+

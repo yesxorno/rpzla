@@ -101,10 +101,10 @@ sub get_all($$)
 	return $result;
 };
 
-sub select_all($$)
+sub select_all($$$)
 {
-	my ($dbh, $table) = @_;
-	my $sql = "select * from $table";
+	my ($dbh, $table, $where) = @_;
+	my $sql = "select * from $table $where";
 	return get_all($dbh, $sql);
 };
 
@@ -112,134 +112,106 @@ sub select_all($$)
 # The master 'get it all' routine.  Give me the handle, schema and table, 
 # and you get the page title and data.
 #
-sub get_db_data($$$)
+sub get_db_data($$$$)
 {
-	my ($dbh, $schema, $table) = @_;
+	my ($dbh, $schema, $table, $where) = @_;
 	return 
 	{
 		'title' => $title{$table},
 		# 'data' => select_all($dbh, "$schema.$table")
-		'data' => select_all($dbh, $table)
+		'data' => select_all($dbh, $table, $where)
 	};
 };
 
-
-######################################################################
-#
-# 'get_data' routines (for each data type)
-#
-
-sub get_dns_data($$$)
+# Radio is essentially a bunch of enums.  Check.
+sub radio_valid($)
 {
-	my ($dbh, $schema, $radio) = @_;
-	my $data = { };
-	if ( 'frequency' eq $radio->{summarize} )
-	{
-		if ( 'day' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'dns_day_frequency');
-		}
-		elsif ( 'week' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'dns_week_frequency');
-		}
-		elsif ( 'month' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'dns_month_frequency');
-		}
-	}
-	elsif ( 'all' eq $radio->{summarize} )
-	{
-		if ( 'day' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'dns_day_all');
-		}
-		elsif ( 'week' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'dns_week_all');
-		}
-		elsif ( 'month' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'dns_month_all');
-		}
-	}
-	return $data;
-};
+	my $r = shift;
+	my $data_type = $r->{'data_type'};
+	my $summarize = $r->{'summarize'};
+	my $period = $r->{'period'};
+	return
+	(
+		(
+			$data_type eq 'dns'
+		or
+			$data_type eq 'web'
+		or
+			$data_type eq 'cor_dns'
+		or
+			$data_type eq 'cor_web'
+		)
+	and
+		(
+			$summarize eq 'frequency'
+		or
+			$summarize eq 'all'
+		)
+	and
+		(
+			$period eq 'day'
+		or
+			$period eq 'week'
+		or
+			$period eq 'month'
+		)
+	)
+}
 
-sub get_web_data($$$)
+# Can translate the radio into the relevant view from which to select
+sub radio_to_view($)
 {
-	my ($dbh, $schema, $radio) = @_;
-	my $data = { };
-	if ( 'frequency' eq $radio->{summarize} )
+	my $radio = shift;
+	my $view = undef;
+	if ( 'dns' eq $radio->{'data_type'} )
 	{
-		if ( 'day' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'web_day_frequency');
-		}
-		elsif ( 'week' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'web_week_frequency');
-		}
-		elsif ( 'month' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'web_month_frequency');
-		}
+		$view = 'dns_' . $radio->{period} . '_' . $radio->{summarize};
 	}
-	elsif ( 'all' eq $radio->{summarize} )
+	elsif ( 'web' eq $radio->{'data_type'} )
 	{
-		if ( 'day' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'web_day_all');
-		}
-		elsif ( 'week' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'web_week_all');
-		}
-		elsif ( 'month' eq $radio->{period} )
-		{
-			$data = get_db_data($dbh, $schema, 'web_month_all');
-		}
+		$view = 'web_' . $radio->{period} . '_' . $radio->{summarize};
 	}
-	return $data;
-};
+	elsif ( 'cor_web' eq $radio->{'data_type'} )
+	{
+		$view = 'cor_' . $radio->{period} . '_web';
+	}
+	elsif ( 'cor_dns' eq $radio->{'data_type'} )
+	{
+		$view = 'cor_' . $radio->{period} . '_dns';
+	}
+	else
+	{
+		# ABORT: invalid data type
+		die("Invalid data type requested.");
+	}
+	return $view;
+}
 
-sub get_cor_web_data($$$)
+# We trust the front end to only supply valid data: make the where clause
+sub make_where_clause($)
 {
-	my ($dbh, $schema, $radio) = @_;
-	my $data = { };
-	if ( 'day' eq $radio->{period} )
+	my $where = shift;
+	my $retval = '';
+	if 
+	( 
+		defined($where->{'col_name'})
+	and
+		defined($where->{'col_op'})
+	and
+		defined($where->{'col_value'})
+	)
 	{
-		$data = get_db_data($dbh, $schema, 'cor_day_web');
+		$retval = join
+		(
+			' ',
+			'where',
+			$where->{'col_name'},
+			$where->{'col_op'},
+			"'" . $where->{'col_value'} . "'"
+		);
 	}
-	elsif ( 'week' eq $radio->{period} )
-	{
-		$data = get_db_data($dbh, $schema, 'cor_week_web');
-	}
-	elsif ( 'month' eq $radio->{period} )
-	{
-		$data = get_db_data($dbh, $schema, 'cor_month_web');
-	}
-	return $data;
-};
-
-sub get_cor_dns_data($$$)
-{
-	my ($dbh, $schema, $radio) = @_;
-	my $data = { };
-	if ( 'day' eq $radio->{period} )
-	{
-		$data = get_db_data($dbh, $schema, 'cor_day_dns');
-	}
-	elsif ( 'week' eq $radio->{period} )
-	{
-		$data = get_db_data($dbh, $schema, 'cor_week_dns');
-	}
-	elsif ( 'month' eq $radio->{period} )
-	{
-		$data = get_db_data($dbh, $schema, 'cor_month_dns');
-	}
-	return $data;
-};
+	return $retval;
+}
 
 ######################################################################
 #
@@ -254,27 +226,13 @@ sub get_cor_dns_data($$$)
 #
 sub get_data
 {
-	my ($db_creds, $radio) = @_;
+	my ($db_creds, $radio, $where) = @_;
 	my $dbh = get_dbh($db_creds);
+	# Currently unused: aborted the tricky schema based roles
 	my $schema = $db_creds->{schema};
-	my $data = undef;
-	# first level split of the radio values
-	if ( 'dns' eq $radio->{'data_type'} )
-	{
-		$data = get_dns_data($dbh, $schema, $radio);
-	}
-	elsif ( 'web' eq $radio->{'data_type'} )
-	{
-		$data = get_web_data($dbh, $schema, $radio);
-	}
-	elsif ( 'cor_web' eq $radio->{'data_type'} )
-	{
-		$data = get_cor_web_data($dbh, $schema, $radio);
-	}
-	elsif ( 'cor_dns' eq $radio->{'data_type'} )
-	{
-		$data = get_cor_dns_data($dbh, $schema, $radio);
-	}
+	my $view = radio_to_view($radio);
+	my $where_clause = make_where_clause($where);
+	my $data = get_db_data($dbh, $schema, $view, $where_clause);
 	$dbh->disconnect();
 	if ( defined($data) )
 	{
@@ -342,8 +300,8 @@ sub register {
 	(
 		get_data => sub 
 		{ 
-			my ($self, $db_creds, $radio) = @_;
-			return get_data($db_creds, $radio); 
+			my ($self, $db_creds, $radio, $where) = @_;
+			return get_data($db_creds, $radio, $where); 
 		}
 	);
 	$app->helper
