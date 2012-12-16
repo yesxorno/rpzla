@@ -1,0 +1,10 @@
+
+	<div id="data">
+
+		<h3> <%= $page_data->{title} %> </h3>
+
+		% foreach my $c ( @{$page_data->{comment}} )
+		% {
+		<p> <%== $c %> </p>
+		% }
+
