@@ -1,9 +1,5 @@
 <h3>Welcome to RPZ Log Analysis</h3>
-<p>
-An introduction to the site and its purpose is available 
-from <a href="/about">About</a>.
-<p/>
-<p>
-Details of the data selection choices available are described in <a href="/help">Help</a>
-</p>
-
+<ul>
+<li> <a href="/about">About</a> is an introduction to the site and its purpose</li>
+<li> <a href="/help">Help</a> provides details of the data selection choices available on the <a href="/data">Data</a> page
+</ul>

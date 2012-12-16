@@ -1,19 +1,11 @@
 <!DOCTYPE HTML>
 <html lang="en">
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<title>RPZ Log Analysis</title>
-	<link rel="stylesheet" type="text/css" href="/style.css" />
-	<!-- nasty javascript, but sets the 'Load' button as focussed
-	 so that you just press Return to 'load' the settings -->
-	<script type="text/javascript">
-	window.onload = function() {
-		document.getElementById('submit').focus();
-	}
-	</script>
+	%= include 'head'
 </head>
 <body>
 <div id="wrap">
+	<% # include the relevant template %>
 	%= include 'header'
 	% if ( 'home' eq $name )
 	% {

@@ -1,4 +1,4 @@
-<p>For a general introduction, see <a href="/about">About</a>.  The pages decribes how to use the data selection controls.</p>
+<p>For a general introduction, see <a href="/about">About</a>.  This pages decribes the meaning of the controls available on the <a href="/data">Data</a> page.</p>
 
 <ol>
 <li> <strong>Raw Data</strong> </li>
@@ -15,7 +15,7 @@
 	<li> Month: view data from withing the last 30 days</li>
 	</ul>
 <li> <strong>Summarize</strong> </li>
-	Display all data, grouped by client
+	Display all data or grouped by client
 	<ul>
 	<li> All: do not summarize, show all data ordered by datetime</li>
 	<li> Frequency: summarize data grouping by client identifier within the period to show how many times each client has contacted the data source (DNS or Web)</li>
@@ -33,6 +33,7 @@
 	<li> Choose operator (= or !=) </li>
 	<li> Enter value (cut and paste from page) </li>
 	</ul>
+	Note that choosing a column and then changing the data source can mean that you will get no data as the column is not part of the new data source.  You will be warned about this possibility of 'lack of data' on any page that returns no results.
 <li> <strong>Correlated Data</strong> </li>
 	Experimental feature.  Summarize is ignored, always Frequency.  Makes a combined analysis from the DNS and Web data.
 	<ul>
@@ -40,15 +41,3 @@
 	<li> DNS - Web: include clients that have asked for a DNS lookup and then <em>not</em> visited the Walled Garden</li>
 	</ul>
 </ol>
-
-<p>The 4 Data types are: <ol><li><strong>DNS</strong> shows DNS lookups of potentially dangerous sites (as defined by your Response Policy Zones)</li><li><strong>Web</strong> shows the page hits to your walled garden web-site.  This data indicates people using a web browser to visit potentially dangerous sites, or people just visiting the walled garden for the fun of it.</li><li><strong>DNS + Web</strong> shows the number of correlations between the DNS and Web data.  These entries indicate an RPZ response to a DNS lookup that then results in a visit to the walled garden (e.g people clicking dangerous links in email).</li><li><strong>DNS - Web</strong> shows the RPZ responses to a DNS lookup that did <em>not</em> result in a walled garden page view.  This indicates probable malware activity.</li></ol></p>
-
-<p>There are 3 periods of data viewing, the last day, week or month (30 days).</p>
-
-<p>For the Raw Data views (DNS and Web), one may see all of the data, or just a count (Frequency) that occurred duing the period for each client.  When Frequency view is used, the data is grouped into "buckets" of time equal to the period.  i.e Web data with a weekly period in frequency view shows all visits to the walled garden from all hosts in the last week.</p>
-
-<p>For the Web data the value listed in the <em>client_hostname</em> column is the result of a reverse lookup on the IP at the time of page view.  The data is grouped by hostname and IP address.  If these change dramatically overtime, the data may be somewhat difficult to interpret.  Hopefully the client_hostname is a constant.</p>
-
-<p>The choice of Summarize (All / Frequency) is <em>ignored</em> for the Correlated data ("DNS + Web" and "DNS - Web").  Frequency style data is always shown.</p>
-
-<p>Data can be viewed (Format) as a web page, of as just text.  The text version is potentially useful in auto-generating reports.</p>
