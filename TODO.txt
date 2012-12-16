@@ -1,40 +1,5 @@
 
-* Need to gather MAC addresses and include in submitted data.
-  Nees to be done live at scraper level, as IP's change.  Provides
-  the 'key'.  (yes MACs can be hacked, but most wont be).
+* Cleanup data handling from web/analysis between
+  rpzla.cgi to/from RpzlaData.pm and the templates.
 
-  Not sure best way to do this.  Probably keep an in memory map
-  of IP to MAC and fetch when a new IP is found.  Also, aging;
-  drop 'old' mappings.  Lots of potential config: aging time etc.
-  (See perl Net::ARP::arp_lookup('eth0') etc.; also ip(1) neighbour show)
-
-  With that 'key' one could then, for example, allow a 'comments'
-  section on a host: user defined content.
-
-  AND !!!  we would really like to be able to query the LAN switches
-  and identify which switch port the client is connected to, which
-  may change over time.  i.e track the location and movement of the
-  computer.
-
-* Add 'select ... where ...' functionality:
-
-  Each client_mac, query_domain, client_ip, client_hostname
-  and responze_zone value becomes a link which specifies 
-  the column name  and the value to be included.
-
-  Use the same 'button groups' on the left, and then add a
-
-    "where <col_name> = <value>"
-
-  clause to the SQL query.  Simple.
-
-  Can add links to all, but that just make the page huge.
-
-  Better plan, create set on interfaces at the top:
-
-  <pulldown col_name> <pulldown = or !=> <text field>
-
-  add a new routine to rpzla.cgi which grabs this data and 
-  then pass it down to RPZLA web/analysis/Mojolicious/Plugin/RpzlaData.pm
-  if the text field is specified.  Thus user must cut/paste and 'Load Selecton'
-
+  Make cleaner: need objects
