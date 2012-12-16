@@ -1,10 +1,14 @@
 
 CGI_DIR		:=	/var/www/html/rpzla
 
+export CGI_DIR	:=	$(CGI_DIR)
+
 CGI_SRCS	:=	\
 			rpzla.cgi
 
 CGI_TARGETS	:=	$(CGI_SRCS:%=$(CGI_DIR)/%)
+
+TEMPLATE_DIR	:=	./templates
 
 INSTALL		:=	install -m 755
 
@@ -12,7 +16,7 @@ INSTALL		:=	install -m 755
 # Targets
 # ------------------------
 
-all:		install
+all:		install templates
 
 install:	$(CGI_DIR) $(CGI_TARGETS)
 	cp -r Mojolicious public $(CGI_DIR)
@@ -25,8 +29,13 @@ clobber:
 	rm -rf $(CGI_BIN)/Mojolicious
 	rm -rf $(CGI_BIN)/public
 
+templates: .dummy
+	$(MAKE) -C $(TEMPLATE_DIR)
+
 $(CGI_DIR):
 	mkdir $(CGI_DIR)
 
 $(CGI_DIR)/%.cgi:	%.cgi
 	$(INSTALL) $< $@
+
+.dummy:

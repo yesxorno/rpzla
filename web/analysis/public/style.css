@@ -8,7 +8,9 @@ body, html
 #wrap 
 {
 	/* width:1024px; */
-	margin:5 auto;
+	/* margin:5 auto; */
+	margin-left: 	10px;
+	margin-right: 	10px;
 }
 #header 
 {
@@ -34,6 +36,11 @@ body, html
 {
 	/* float:right; */
 	/* width: 844px; */
+}
+
+#main th
+{
+	text-align:	left;
 }
 
 #selection

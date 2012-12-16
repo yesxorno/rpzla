@@ -115,12 +115,7 @@ sub select_all($$$)
 sub get_db_data($$$$)
 {
 	my ($dbh, $schema, $table, $where) = @_;
-	return 
-	{
-		'title' => $title{$table},
-		# 'data' => select_all($dbh, "$schema.$table")
-		'data' => select_all($dbh, $table, $where)
-	};
+	return select_all($dbh, $table, $where);
 };
 
 # Radio is essentially a bunch of enums.  Check.
@@ -232,11 +227,14 @@ sub get_data
 	my $schema = $db_creds->{schema};
 	my $view = radio_to_view($radio);
 	my $where_clause = make_where_clause($where);
-	my $data = get_db_data($dbh, $schema, $view, $where_clause);
-	$dbh->disconnect();
-	if ( defined($data) )
+	my $page_data = 
 	{
-		my $num_rows = scalar(@{$data->{data}}) - 1;
+		'data' => get_db_data($dbh, $schema, $view, $where_clause)
+	};
+	$dbh->disconnect();
+	if ( defined($page_data) )
+	{
+		my $num_rows = scalar(@{$page_data->{data}}) - 1;
 		my $comment = '';
 		if ( 0 == $num_rows )
 		{
@@ -254,38 +252,10 @@ sub get_data
 		{
 			$comment = "The world has gone crazy. Negative number of row returned from query.";
 		}
-		$data->{comment} = [ $comment ];
+		$page_data->{comment} = [ $comment ];
 	}
-	return $data;
+	return $page_data;
 };
-
-#
-# TODO:
-#
-# Development idea.  Provide the use with a list of the view, and
-# they can just click on a view to see its data.
-#
-# Not working yet.
-
-# return a list of the view names in the database
-sub get_views($)
-{
-	my $db_creds = shift;
-	my $dbh = get_dbh($db_creds);
-	my @views = $dbh->tables
-	(
-		'', '', $db_creds->{name}, 'VIEW', {noprefix=>1}
-	);
-	my $num_views = scalar(@views);
-	my $data = 
-	{
-		'title' 	=> 'List of Views',
-		'comment' 	=> [ "Plugin framework: $num_views views" ],
-		'data'		=> [ @views ],
-	};
-	$dbh->disconnect();
-	return $data;
-}
 
 ######################################################################
 #
@@ -302,14 +272,6 @@ sub register {
 		{ 
 			my ($self, $db_creds, $radio, $where) = @_;
 			return get_data($db_creds, $radio, $where); 
-		}
-	);
-	$app->helper
-	(
-		get_views => sub 
-		{ 
-			my ($self, $db_creds) = @_;
-			return get_views($db_creds);
 		}
 	);
 };
