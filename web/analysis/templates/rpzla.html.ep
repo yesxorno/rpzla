@@ -14,7 +14,15 @@
 	% elsif ( 'data' eq $name )
 	% {
 		%= include 'selection'
-		%= include 'main'
+		%= include 'data_header'
+		% if ( 1 == $page_data->{graph} )
+		% {
+			%= include 'graph'
+		% }
+		% if ( 1 == $page_data->{table} )
+		% {
+			%= include 'table'
+		% }
 	% }
 	% elsif ( 'help' eq $name )
 	% {

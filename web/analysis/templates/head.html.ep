@@ -3,14 +3,9 @@
 	<title>RPZ Log Analysis</title>
 	<link rel="stylesheet" type="text/css" href="/style.css" />
 
-	<% # only include the java script for the data page %>
-	% if ( 'data' eq $name )
+	<% # include jQuery and flot for graphs (thanks Ole Laursen) %>
+	% if ( ('data' eq $name) and (1 == $page_data->{graph}) )
 	% {
-	<!-- nasty javascript, but sets the 'Load' button as focussed
-	 so that you just press Return to 'load' the settings -->
-	<script type="text/javascript">
-	window.onload = function() {
-		document.getElementById('submit').focus();
-	}
-	</script>
+	<script language="javascript" type="text/javascript" src="/flot/jquery.js"></script>
+	<script language="javascript" type="text/javascript" src="/flot/jquery.flot.js"></script>
 	% }

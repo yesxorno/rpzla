@@ -15,8 +15,13 @@
 	<hr />
 		<table width="100%">
 		<tr>
-			<td align="left"><a href="/">Home</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="/data">Data</a></td>
-			<td align="right"><a href="/help">Help</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="/about">About</a> </td>
+			<td align="left">
+			<a href="/">Home</a>&nbsp;&nbsp;&nbsp;&nbsp;
+			<a href="/data">Data</a>
+			</td>
+			<td align="right">
+			<a href="/help">Help</a>&nbsp;&nbsp;&nbsp;&nbsp;
+			<a href="/about">About</a> </td>
 		</tr>
 		</table>
 		<hr />

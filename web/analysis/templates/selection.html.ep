@@ -1,6 +1,12 @@
 
 <div id="selection">
 
+<script type="text/javascript">
+window.onload = function() {
+	document.getElementById('submit').focus();
+}
+</script>
+
 <form name="choose" method="post" action="/data">
 <center>
 <table>
@@ -48,6 +54,16 @@
 
 <td>
 <strong>Format</strong><br />
+<input type="radio" name="format" value="graph" 
+<%= $page_data->{radio}->{'format'} eq 'graph' ? 'checked' : '' %>
+/>
+	Graph
+<br />
+<input type="radio" name="format" value="graph+html" 
+<%= $page_data->{radio}->{'format'} eq 'graph+html' ? 'checked' : '' %>
+/>
+	Graph + HTML
+<br />
 <input type="radio" name="format" value="html" 
 <%= $page_data->{radio}->{'format'} eq 'html' ? 'checked' : '' %>
 />
@@ -93,7 +109,9 @@ value="<%= $page_data->{where}->{'col_value'} %>"
 
 <tr>
 <td colspan="6"> 
-	<center><input name="submit" type="submit" value="Load" /></center>
+	<center>
+	<input name="submit" type="submit" value="Load" />
+	</center>
 </td>
 </tr>
 
