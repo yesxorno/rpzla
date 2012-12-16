@@ -4,6 +4,14 @@ use Mojolicious::Lite;
 use Config::General;
 use String::Util 'trim';
 
+use constant NO_DATA_HELP	=> "<em>Note:</em> when no data is returned the cause is either:
+<ol>
+<li> there really is no data within the period, or</li>
+<li> the query is confused</li>
+</ol>
+<p>The second case occurs when on uses Restrict and selects a column name and then changes the query type to one that <em>does not have the column</em>.  Suggestion: clear the restrction and reload.  If you still get no data, there is none.";
+use constant DEFAULT_DATA_TEXT	=> 'Please make a data selection above and load.  <br />See <a href="/help">Help</a> for more information on making selections.';
+
 #
 # Definition of the database access information.  Currently it is read
 # from the config file.  You can define it here and remove the use
@@ -19,6 +27,33 @@ use String::Util 'trim';
 #	pass	=> 'something-that-you-chose',
 # };
 
+# Hashref passed to the top level config.
+#
+# These are the 'variables' that are directly usable by the templates
+#
+# 'template' and 'format' are only used by the renderer.
+#
+# 'name' is critical to the top level template to know which sub-templates
+# to use
+#
+# 'page_data' is for the data rendering (rather than static) pages.
+#
+my $tpl_config =
+{
+	name		=>  undef,  # identifier for each page
+	page_data	=>  undef,  # only used by data pages
+};
+
+# Hashref of information to be passed to the template for data rendering
+#
+my $db_data = 
+{
+	radio		=> undef, # buttons on the selection panel
+	where		=> undef, # pulldowns (Restrict) on the selection panel
+	data		=> undef, # data from the database
+	cols		=> undef, # col names returned from db for easy access
+	comments	=> undef, # any additional commentary
+};
 
 # Note: This class adds methods to 'self'.  Thus, if you cant find the
 # self->some_method(arg,...) look in Mojolicious/Plugin/RpzlaData.pm
@@ -118,9 +153,7 @@ sub get_db_from_config()
 #
 helper render_data_page => sub
 {
-	my ($self, $data) = @_;
-	my $radio = $self->radio_states();
-	my $where = $self->where_states();
+	my ($self, $data_warning) = @_;
 	# Get the column names from the queried data
 	# strip the 'datetime' column and give it to the 
 	# renderer for use in the Restrict column name pulldown (where clause)
@@ -128,46 +161,51 @@ helper render_data_page => sub
 	# Note that converting the first row from array ref to array is
 	# important, else when we 'shift' it, we *lose* the column name.
 	#
-	my @col_names = ();
-	if ( defined($data->{data}[0]) and 0 < length(@{$data->{data}[0]}) )
+	if ( $data_warning )
 	{
-		@col_names = @{$data->{data}[0]};
-		# remove the datetime (no point matching that)
-		shift(@col_names);
+		my $col_names = [ ];
+		if 
+		( 
+			defined($db_data->{data}[0])
+		and
+			0 < length(@{$db_data->{data}[0]}) )
+		{
+			@{$col_names} = @{$db_data->{data}[0]};
+			# remove the datetime (no point matching that)
+			shift(@{$col_names});
+			$db_data->{cols} = $col_names;
+		}
+		else
+		{
+			push(@{$db_data->{comment}}, NO_DATA_HELP());
+		}
 	}
-	else
+	if ( defined($db_data->{radio}) )
 	{
-		push
-		(
-			@{$data->{'comment'}}, 
-			"<em>Note:</em> using Restrict can produce " .
-			"no data if your value does not match anything, or " .
-			"you have chosen a column and then changed the query " .
-			"type (other queries may not have that column).  " .
-			"Suggestion: clear the restrction and reload."
-		);
+		$tpl_config->{format} = $db_data->{radio}->{format};
 	}
-	$self->stash
-	(
-		template	=> 'rpzla',
-		name 		=> 'data',
-		format 		=> $radio->{'format'},
-		page_data	=> $data,
-		radio		=> $radio,
-		where		=> $where,
-		cols		=> \@col_names,
-	);
-	$self->render();
+	$tpl_config->{page_data} = $db_data;
+	$self->render_page('data');
 };
 
 #
 # The simple page splatter
 #
-helper render_simple_page => sub
+helper render_page => sub
 {
 	my ($self, $name) = @_;
-	$self->stash(template => 'rpzla', name => $name);
-	$self->render();
+	$tpl_config->{name} = $name;
+	my $format = 'html';
+	if ( defined($db_data->{radio}->{format}) )
+	{
+		$format = $db_data->{radio}->{format};
+	}
+	$self->stash($tpl_config);
+	$self->render
+	(
+		template => 'rpzla',
+		format => $format,
+	);
 };
 
 #
@@ -175,22 +213,26 @@ helper render_simple_page => sub
 #
 get '/' => sub {
 	my $self = shift;
-	$self->render_simple_page('home');
+	$self->render_page('home');
 };
 
 get '/about' => sub {
 	my $self = shift;
-	$self->render_simple_page('about');
+	$self->render_page('about');
 };
 
 get '/help' => sub {
 	my $self = shift;
-	$self->render_simple_page('help');
+	$self->render_page('help');
 };
 
 get '/data' => sub {
 	my $self = shift;
-	$self->render_data_page({'data' => []});
+	$db_data->{radio} = $self->radio_states();
+	$db_data->{where} = $self->where_states();
+	# Just a get, no data to gather
+	$db_data->{comment} = [ DEFAULT_DATA_TEXT() ];
+	$self->render_data_page(0);
 };
 
 #
@@ -210,12 +252,12 @@ post '/data' => sub
 	#
 	# grab the selection
 	#
-	my $radio = $self->radio_states();
-	my $where = $self->where_states();
+	$db_data->{radio} = $self->radio_states();
+	$db_data->{where} = $self->where_states();
 	# fetch data
-	my $page_data = $self->get_data($db_creds, $radio, $where);
+	$self->get_data($db_creds, $db_data);
 	# render
-	$self->render_data_page($page_data);
+	$self->render_data_page(1);
 };
 
 # gobbledygook our cookie data

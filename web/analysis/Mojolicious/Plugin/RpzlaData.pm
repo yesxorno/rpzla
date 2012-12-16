@@ -221,17 +221,23 @@ sub make_where_clause($)
 #
 sub get_data
 {
-	my ($db_creds, $radio, $where) = @_;
+	my ($db_creds, $page_data) = @_;
 	my $dbh = get_dbh($db_creds);
+	# pull out radio and where for processing
+	my $radio = $page_data->{radio};
+	my $where = $page_data->{where};
 	# Currently unused: aborted the tricky schema based roles
 	my $schema = $db_creds->{schema};
+	# Convert the radio choices to view name in DB
 	my $view = radio_to_view($radio);
+	# Convert where selection to where clause
 	my $where_clause = make_where_clause($where);
-	my $page_data = 
-	{
-		'data' => get_db_data($dbh, $schema, $view, $where_clause)
-	};
+	# Grab the data
+	$page_data->{data} = get_db_data($dbh, $schema, $view, $where_clause);
+	# Set heading for data page
+	$page_data->{title} = $title{$view};
 	$dbh->disconnect();
+	# Add num rows comment
 	if ( defined($page_data) )
 	{
 		my $num_rows = scalar(@{$page_data->{data}}) - 1;
@@ -254,7 +260,8 @@ sub get_data
 		}
 		$page_data->{comment} = [ $comment ];
 	}
-	return $page_data;
+	return 1;
+	# return $page_data;
 };
 
 ######################################################################
@@ -270,8 +277,8 @@ sub register {
 	(
 		get_data => sub 
 		{ 
-			my ($self, $db_creds, $radio, $where) = @_;
-			return get_data($db_creds, $radio, $where); 
+			my ($self, $db_creds, $page_data) = @_;
+			return get_data($db_creds, $page_data);
 		}
 	);
 };
