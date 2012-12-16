@@ -1,0 +1,10 @@
+<p>The RPZ Log Analysis site provides a high level overview of data gathered from recursive DNS resolvers implementing Response Policy Zones and a Walled Garden (as it is known in the RPZ literature) web site.</p>
+
+<p>By tracking the logs from the DNS\'s implementing RPZ we can determine which systems are visiting potentially hazardous domains.  These attempted visits are either human generated (e.g click link in nasty email) or not (e.g malware on the system wants to call home).</p>
+
+<p>By implementing a walled garden site, and tracking its logs we can attempt to differentiate between the two types of request.  In general, a person using a web browser will end up at the walled garden, thus generating two pieces of log data, the DNS request and the Walled Garden visit.  Conversely, a piece of malware is only likely to generate the DNS log record.  (There will, of course, be false positives if the "malware" is speaking HTTP and following CNAME DNS reponses such that it totally mimics a browser).</p>
+
+<p>This site allows you to view the data gathered from the DNS resolver(s) and the walled garden during some recent period either as raw data, or in a summarized aggregate form (number of visits per client).</p>
+
+<p>Additionally, one can use the `Correlated` data of "DNS + Web" or "DNS - Web".  The first shows systems where a RPZ response to a DNS lookup resulted in a view of the walled garden (i.e a human using a brower to visit suspicious sites).  The second show the other case, where an RPZ response does <em>not</em> result in a visit to the walled garden (probably malware).</p>
+

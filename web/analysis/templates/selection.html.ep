@@ -1,0 +1,106 @@
+
+	<div id="selection">
+
+	<!-- The big 'radio groups sidebar' should really be an object -->
+	<form name="choose" method="post" action="/data">
+		<center>
+		<table>
+
+		<tr>
+
+		<td id="choose">
+		<strong>Raw Data</strong><br />
+		<input type="radio" name="data_type" value="dns" 
+		<%= $radio->{'data_type'} eq 'dns' ? 'checked' : '' %> />
+			DNS
+		<br />
+		<input type="radio" name="data_type" value="web" 
+		<%= $radio->{'data_type'} eq 'web' ? 'checked' : '' %> />
+			Web
+		</td>
+
+		<td>
+		<strong>Period</strong><br />
+		<input type="radio" name="period" value="day" 
+		<%= $radio->{'period'} eq 'day' ? 'checked' : '' %>/>
+			Day
+		<br />
+		<input type="radio" name="period" value="week" 
+		<%= $radio->{'period'} eq 'week' ? 'checked' : '' %>/>
+			Week
+		<br />
+		<input type="radio" name="period" value="month" 
+		<%= $radio->{'period'} eq 'month' ? 'checked' : '' %>/>
+			Month
+		</td>
+		<td>
+		<strong>Summarize</strong><br />
+		<input type="radio" name="summarize" value="all" 
+		<%= $radio->{'summarize'} eq 'all' ? 'checked' : '' %>
+		/>
+			All
+		<br />
+		<input type="radio" name="summarize" value="frequency" 
+		<%= $radio->{'summarize'} eq 'frequency' ? 'checked' : '' %>
+		/>
+			Frequency
+		</td>
+		<td>
+		<strong>Format</strong><br />
+		<input type="radio" name="format" value="html" 
+		<%= $radio->{'format'} eq 'html' ? 'checked' : '' %>
+		/>
+			HTML
+		<br />
+		<input type="radio" name="format" value="text" 
+		<%= $radio->{'format'} eq 'text' ? 'checked' : '' %>
+		/>
+			Text
+		</td>
+
+		<td>
+		<strong>Restrict</strong><br />
+		<select name="col_name">
+		%	foreach my $col ( @$cols )
+		% {
+			<option <%= $where->{'col_name'} eq $col ? 'selected' : '' %> > <%= $col %> </option>
+		% }
+		</select>
+		&nbsp;
+		<select name="col_op">
+			<option>=</option>
+			<option>!=</option>
+		</select>
+		<br />
+		<input name="col_value" type="text" 
+		value="<%= $where->{'col_value'} %>"
+		/>
+		</td>
+
+		<td>
+		<strong>Correlated Data</strong><br />(Experimental)<br />
+		<input type="radio" name="data_type" value="cor_web" 
+		<%= $radio->{'data_type'} eq 'cor_web' ? 'checked' : '' %> />
+			DNS + Web
+		<br />
+		<input type="radio" name="data_type" value="cor_dns" 
+		<%= $radio->{'data_type'} eq 'cor_dns' ? 'checked' : '' %> />
+			DNS - Web
+		</td>
+
+		</tr>
+
+		<tr>
+		<td colspan="6"> 
+			<center><input name="submit" type="submit" value="Load Selection" /></center>
+		</td>
+		</tr>
+
+		</table>
+		</center>
+	</form>
+	</div>
+
+	<hr />
+
+

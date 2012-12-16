@@ -1,0 +1,23 @@
+	<div id="header">
+	<table width="100%">
+	<tr>
+		<td width="10%">
+			<a href="/"><img src="/logo.png" align="left"/></a>
+		</td>
+		<td>
+			<h2>RPZ Log Analysis</h2>
+		</td>
+	</tr>
+	</table>
+	</div>
+
+	<div id="nav">
+	<hr />
+		<table width="100%">
+		<tr>
+			<td align="left"><a href="/">Home</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="/data">Data</a></td>
+			<td align="right"><a href="/help">Help</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="/about">About</a> </td>
+		</tr>
+		</table>
+		<hr />
+	</div>

@@ -1,0 +1,17 @@
+<%= $page_data->{title} %>
+
+% foreach my $c ( @{$page_data->{comment}} )
+% {
+* <%== $c %>
+% }
+
+% my $i = 0;
+% foreach my $row ( @{$page_data->{data}} )
+% {
+<%= join(' ', @{$row}) %>
+% if ( 0 == $i ) 
+% { 
+%	$i = 1; 
+	<%= '' %> 
+% }
+% }

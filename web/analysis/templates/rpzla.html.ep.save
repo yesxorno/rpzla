@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>RPZ Log Analysis</title>
+	<link rel="stylesheet" type="text/css" href="/style.css" />
+	<!-- nasty javascript, but sets the 'Load' button as focussed
+	 so that you just press Return to 'load' the settings -->
+	<script type="text/javascript">
+	window.onload = function() {
+		document.getElementById('submit').focus();
+	}
+	</script>
+</head>
+<body>
+<div id="wrap">
+	%= include 'header'
+	% if ( 'home' eq $name )
+	% {
+		%= include 'home'
+	% }
+	% elsif ( 'data' eq $name )
+	% {
+		% $self-stash({radio => $radio, cols => $cols, where => $where})
+		%= $self->render(template => 'selection', partial => 1)
+		% $self-stash({page_data => $page_data})
+		%= $self->render(template => 'main', partial => 1)
+	% }
+	% elsif ( 'help' eq $name )
+	% {
+		%= include 'help'
+	% }
+	% elsif ( 'about' eq $name )
+	% {
+		%= include 'about'
+	% }
+	%= include 'footer'
+</div>
+
+</body>
+</html>
