@@ -123,7 +123,7 @@ sub radio_valid($)
 {
 	my $r = shift;
 	my $data_type = $r->{'data_type'};
-	my $summarize = $r->{'summarize'};
+	my $grouping = $r->{'grouping'};
 	my $period = $r->{'period'};
 	return
 	(
@@ -138,9 +138,9 @@ sub radio_valid($)
 		)
 	and
 		(
-			$summarize eq 'frequency'
+			$grouping eq 'client_ip'
 		or
-			$summarize eq 'all'
+			$grouping eq 'none'
 		)
 	and
 		(
@@ -158,13 +158,21 @@ sub radio_to_view($)
 {
 	my $radio = shift;
 	my $view = undef;
+	#
+	# NOTE !!!!
+	#
+	# Changes required when 'client_ip' or 'client_mac' grouping 
+	# are possible
+	#
 	if ( 'dns' eq $radio->{'data_type'} )
 	{
-		$view = 'dns_' . $radio->{period} . '_' . $radio->{summarize};
+		$view = 'dns_' . $radio->{period} . '_' . 
+		( 'none' eq $radio->{grouping} ? 'all' : 'frequency' );
 	}
 	elsif ( 'web' eq $radio->{'data_type'} )
 	{
-		$view = 'web_' . $radio->{period} . '_' . $radio->{summarize};
+		$view = 'web_' . $radio->{period} . '_' . 
+		( 'none' eq $radio->{grouping} ? 'all' : 'frequency' );
 	}
 	elsif ( 'cor_web' eq $radio->{'data_type'} )
 	{
