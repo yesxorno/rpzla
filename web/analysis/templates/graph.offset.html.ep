@@ -1,0 +1,40 @@
+
+% if ( 0 < $page_data->{graph_data}->{offset_non_zero} )
+% {
+	<div id="graph">
+	<p> <strong>Note</strong> time is lost; we're dealing in differences</p>
+
+	</div>
+
+	<div id="graph_here" style="width:1300px;height:240px;"></div>
+	<script id="source">
+	$(function () {
+		var d1 = [
+			<%= $page_data->{graph_data}->{data} %>
+		];
+
+		function plotWithOptions() {
+		$.plot(
+			$("#graph_here"), 
+			[ { label: "test", data: d1 } ], {
+			series: {
+				bars: { show: true  }
+			}
+		});
+		}
+
+		plotWithOptions();
+	});
+	</script>
+
+	<ul> 
+	<li>Offsets actual: <%= $page_data->{graph_data}->{offsets_actual} %> </li>
+	<li>Offsets max: <%= $page_data->{graph_data}->{offset_max_sec} %> </li>
+	<li>Offsets interval: <%= $page_data->{graph_data}->{offset_interval_sec} %> </li>
+	<li>Offsets interval text: <%= $page_data->{graph_data}->{offset_interval_text} %> </li>
+	<li>Offsets non-zero: <%= $page_data->{graph_data}->{offset_non_zero} %> </li>
+	<li>Offsets records input: <%= $page_data->{graph_data}->{input_records} %> </li>
+	<li>Offsets diffs: <%= $page_data->{graph_data}->{total_differences} %> </li>
+
+	</div>
+% }

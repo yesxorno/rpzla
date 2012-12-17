@@ -1,0 +1,41 @@
+
+% if ( 0 < $page_data->{graph_data}->{bucket_non_zero} )
+% {
+	<div id="graph">
+	<p> <strong>Note</strong> the graph goes backward in time, like the data</p>
+
+	</div>
+
+	<div id="graph_here" style="width:1300px;height:240px;"></div>
+	<script id="source">
+	$(function () {
+		var d1 = [
+			<%= $page_data->{graph_data}->{data} %>
+		];
+
+		function plotWithOptions() {
+		$.plot(
+			$("#graph_here"), 
+			[ { label: "test", data: d1 } ], {
+			series: {
+				bars: { show: true  }
+			}
+		});
+		}
+
+		plotWithOptions();
+	});
+	</script>
+
+	<ul> 
+	<li>Bucket width: <%= $page_data->{graph_data}->{bucket_width_text} %> </li>
+	<li>Bucket secs: <%= $page_data->{graph_data}->{bucket_width_sec} %> </li>
+	<li>Buckets (num): <%= $page_data->{graph_data}->{bucket_num} %> </li>
+	<li>Bucket actual: <%= $page_data->{graph_data}->{buckets_actual} %> </li>
+	<li>Bucket all records: <%= $page_data->{graph_data}->{bucket_total_records} %> </li>
+	<li>Timezone: <%= $page_data->{graph_data}->{tz} %> </li>
+	<li>Non zero buckets: <%= $page_data->{graph_data}->{bucket_non_zero} %> </li>
+	<li>Period start: <%= $page_data->{graph_data}->{period_start} %> </li>
+
+	</div>
+% }

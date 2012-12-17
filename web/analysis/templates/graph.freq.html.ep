@@ -1,0 +1,32 @@
+
+	<div id="graph">
+	<p> <strong>Note</strong> all sense of time is lost.  The graph is decending values of the grouped client data.  Useful to view Graph+HTML so you know what is what.</p>
+
+	</div>
+
+	<div id="graph_here" style="width:1300px;height:240px;"></div>
+	<script id="source">
+	$(function () {
+		var d1 = [
+			<%= $page_data->{graph_data}->{data} %>
+		];
+
+		function plotWithOptions() {
+		$.plot(
+			$("#graph_here"), 
+			[ { label: "test", data: d1 } ], {
+			series: {
+				bars: { show: true  }
+			}
+		});
+		}
+
+		plotWithOptions();
+	});
+	</script>
+
+	<ul> 
+	<li>Records: <%= $page_data->{graph_data}->{records} %> </li>
+	<li>Cummulative Total: <%= $page_data->{graph_data}->{total} %> </li>
+
+	</div>
