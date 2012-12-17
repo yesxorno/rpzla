@@ -23,6 +23,16 @@ window.onload = function() {
 <%= $page_data->{radio}->{'data_type'} eq 'web' ? 'checked' : '' %> />
 	Web
 </td>
+<td>
+<strong>Correlated Data</strong><br />(Experimental)<br />
+<input type="radio" name="data_type" value="cor_web" 
+<%= $page_data->{radio}->{'data_type'} eq 'cor_web' ? 'checked' : '' %> />
+	DNS + Web
+<br />
+<input type="radio" name="data_type" value="cor_dns" 
+<%= $page_data->{radio}->{'data_type'} eq 'cor_dns' ? 'checked' : '' %> />
+	DNS - Web
+</td>
 
 <td>
 <strong>Period</strong><br />
@@ -40,16 +50,16 @@ window.onload = function() {
 </td>
 
 <td>
-<strong>Summarize</strong><br />
-<input type="radio" name="summarize" value="all" 
-<%= $page_data->{radio}->{'summarize'} eq 'all' ? 'checked' : '' %>
+<strong>Grouping</strong><br />
+<input type="radio" name="grouping" value="none" 
+<%= $page_data->{radio}->{'grouping'} eq 'none' ? 'checked' : '' %>
 />
-	All
+	None
 <br />
-<input type="radio" name="summarize" value="frequency" 
-<%= $page_data->{radio}->{'summarize'} eq 'frequency' ? 'checked' : '' %>
+<input type="radio" name="grouping" value="client_ip" 
+<%= $page_data->{radio}->{'grouping'} eq 'client_ip' ? 'checked' : '' %>
 />
-	Frequency
+	Client IP
 </td>
 
 <td>
@@ -76,6 +86,19 @@ window.onload = function() {
 </td>
 
 <td>
+<strong>Graph Type</strong><br />
+<input type="radio" name="graph_type" value="normal" 
+<%= $page_data->{radio}->{'graph_type'} eq 'normal' ? 'checked' : '' %>
+/>
+	Normal
+<br />
+<input type="radio" name="graph_type" value="difference" 
+<%= $page_data->{radio}->{'graph_type'} eq 'difference' ? 'checked' : '' %>
+/>
+	Difference
+</td>
+
+<td>
 <strong>Restrict</strong><br />
 <select name="col_name">
 % foreach my $col ( @{$page_data->{cols}} )
@@ -94,21 +117,10 @@ value="<%= $page_data->{where}->{'col_value'} %>"
 />
 </td>
 
-<td>
-<strong>Correlated Data</strong><br />(Experimental)<br />
-<input type="radio" name="data_type" value="cor_web" 
-<%= $page_data->{radio}->{'data_type'} eq 'cor_web' ? 'checked' : '' %> />
-	DNS + Web
-<br />
-<input type="radio" name="data_type" value="cor_dns" 
-<%= $page_data->{radio}->{'data_type'} eq 'cor_dns' ? 'checked' : '' %> />
-	DNS - Web
-</td>
-
 </tr>
 
 <tr>
-<td colspan="6"> 
+<td colspan="7"> 
 	<center>
 	<input name="submit" type="submit" value="Load" />
 	</center>

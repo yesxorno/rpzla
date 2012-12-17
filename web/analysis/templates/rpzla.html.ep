@@ -5,34 +5,46 @@
 </head>
 <body>
 <div id="wrap">
-	<% # include the relevant template %>
-	%= include 'header'
-	% if ( 'home' eq $name )
+<% # include the relevant template %>
+%= include 'header'
+% if ( 'data' eq $name )
+% {
+	%= include 'selection'
+	%= include 'data_header'
+	% if ( 1 == $page_data->{graph} )
 	% {
-		%= include 'home'
-	% }
-	% elsif ( 'data' eq $name )
-	% {
-		%= include 'selection'
-		%= include 'data_header'
-		% if ( 1 == $page_data->{graph} )
+		% if ( 'freq' eq $page_data->{graph_data}->{graph_type} )
 		% {
-			%= include 'graph'
+			%= include 'graph.freq'
 		% }
-		% if ( 1 == $page_data->{table} )
+		% elsif ( 'bucket' eq $page_data->{graph_data}->{graph_type} )
 		% {
-			%= include 'table'
+			%= include 'graph.bucket'
+		% }
+		% elsif ( 'offset' eq $page_data->{graph_data}->{graph_type} )
+		% {
+			%= include 'graph.offset'
 		% }
 	% }
-	% elsif ( 'help' eq $name )
+	% if ( 1 == $page_data->{table} )
 	% {
-		%= include 'help'
+		%= include 'table'
 	% }
-	% elsif ( 'about' eq $name )
-	% {
-		%= include 'about'
-	% }
-	%= include 'footer'
+% }
+% elsif ( 'home' eq $name )
+% {
+	%= include 'home'
+% }
+% elsif ( 'help' eq $name )
+% {
+	%= include 'help'
+% }
+% elsif ( 'about' eq $name )
+% {
+	%= include 'about'
+% }
+%= include 'footer'
+
 </div>
 
 </body>
