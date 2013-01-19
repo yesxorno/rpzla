@@ -57,3 +57,7 @@ One can them apply this with clients.  E.g
   from dns d
   where d.query_domain in
   (select query_domain from query_domains_not_followed);
+=======
+  Make cleaner: need objects
+
+
