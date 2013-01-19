@@ -1,5 +1,59 @@
 
-* Cleanup data handling from web/analysis between
-  rpzla.cgi to/from RpzlaData.pm and the templates.
+New UI
+======
 
-  Make cleaner: need objects
+Product focus is on monitoring and identification of 
+suspect systems.
+
+Main Page
+---------
+
+Show data from DNS and Web graphically.  All clients
+in the last X amount of time (perhaps just use the day/week/month
+breakdown).
+
+Would be quite nice to use the 'Tab' style (DNS / Web) to
+show each without page reload.
+
+See: http://jquerytools.org/demos/tabs/index.htm
+
+Note that the graph package Flot already includes jQuery, 
+which is nice.
+
+Identification Page
+-------------------
+
+The problem is the lack of unique ID's (name, IP, MAC).
+
+Idea is a table of columns of identification heuristics
+(frequency, clumps, logarithmic etc.) with each row
+being an ID with relevant summary of each heuristic.
+
+
+Domain Analysis (as opposed to client)
+======================================
+
+Domains that are being followed (from DNS to Web):
+
+	create view query_domains_followed as
+	select distinct(w.query_domain)
+	from web w, dns d
+	where w.query_domain = d.query_domain
+	order by w.query_domain;
+
+Domains that are NOT being followed (only DNS queries):
+
+	create view query_domains_not_followed as
+	select distinct(d.query_domain)
+	from dns d
+	where d.query_domain 
+	not in 
+	( select query_domain from query_domains_followed );
+
+
+One can them apply this with clients.  E.g
+
+  select distinct(d.client_mac)
+  from dns d
+  where d.query_domain in
+  (select query_domain from query_domains_not_followed);
