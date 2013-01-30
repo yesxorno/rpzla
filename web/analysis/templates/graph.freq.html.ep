@@ -5,6 +5,7 @@
 	</div>
 
 	<div id="graph_here" style="width:1300px;height:240px;"></div>
+	% my $label = "grouped by time";
 	<script id="source">
 	$(function () {
 		var d1 = [
@@ -14,7 +15,7 @@
 		function plotWithOptions() {
 		$.plot(
 			$("#graph_here"), 
-			[ { label: "test", data: d1 } ], {
+			[ { label: "<%= $label %>", data: d1 } ], {
 			series: {
 				bars: { show: true  }
 			}

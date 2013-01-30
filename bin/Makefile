@@ -14,9 +14,12 @@ BIN_TARGETS	:=	$(BIN_SRCS:%=$(BIN_DIR)/%)
 # Targets
 # ------------------------
 
-all:		install
+all:		install scraper
 
-install:	$(BIN_TARGETS)
+install:	$(BIN_TARGETS) scraper
+
+scraper:
+	$(MAKE) -C ../lib $@
 
 clean:		
 	@echo "You mean clobber"

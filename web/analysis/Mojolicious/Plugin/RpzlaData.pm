@@ -1,5 +1,6 @@
 package Mojolicious::Plugin::RpzlaData;
 use Mojo::Base 'Mojolicious::Plugin';
+use RPZLA::Analysis::BucketSpec;
 
 use DBI;
 
@@ -193,25 +194,37 @@ sub radio_to_view($)
 # We trust the front end to only supply valid data: make the where clause
 sub make_where_clause($)
 {
-	my $where = shift;
-	my $retval = '';
-	if 
-	( 
-		defined($where->{'col_name'})
-	and
-		defined($where->{'col_op'})
-	and
-		defined($where->{'col_value'})
-	)
+	my $restrict = shift;
+	my @clause = ( );
+	for my $where ( @{$restrict} )
 	{
-		$retval = join
-		(
-			' ',
-			'where',
-			$where->{'col_name'},
-			$where->{'col_op'},
-			"'" . $where->{'col_value'} . "'"
-		);
+		if 
+		( 
+			defined($where->{'col_name'})
+		and
+			defined($where->{'col_op'})
+		and
+			defined($where->{'col_value'})
+		)
+		{
+			push
+			(
+				@clause,
+				join
+				(
+					' ',
+					$where->{'col_name'},
+					$where->{'col_op'},
+					"'" . $where->{'col_value'} . "'"
+				)
+			);
+		}
+	}
+	# compose ...
+	my $retval = '';
+	if ( 0 < scalar(@clause) )
+	{
+		$retval = ' where ' .  join(' and ', @clause);
 	}
 	return $retval;
 }
@@ -230,44 +243,49 @@ sub make_where_clause($)
 sub get_data
 {
 	my ($db_creds, $page_data) = @_;
+	my @comment = ();
+	#
 	my $dbh = get_dbh($db_creds);
 	# pull out radio and where for processing
 	my $radio = $page_data->{radio};
-	my $where = $page_data->{where};
+	my $restrict = $page_data->{restrict};
 	# Currently unused: aborted the tricky schema based roles
 	my $schema = $db_creds->{schema};
 	# Convert the radio choices to view name in DB
 	my $view = radio_to_view($radio);
+	$page_data->{title} = $title{$view}; # Set heading for data page
 	# Convert where selection to where clause
-	my $where_clause = make_where_clause($where);
+	my $where_clause = make_where_clause($restrict);
 	# Grab the data
 	$page_data->{data} = get_db_data($dbh, $schema, $view, $where_clause);
-	# Set heading for data page
-	$page_data->{title} = $title{$view};
 	$dbh->disconnect();
 	# Add num rows comment
 	if ( defined($page_data) )
 	{
 		my $num_rows = scalar(@{$page_data->{data}}) - 1;
-		my $comment = '';
 		if ( 0 == $num_rows )
 		{
-			$comment .= "No matching data.";
+			push(@comment, "No matching data. $where_clause");
 		}
 		elsif ( 1 == $num_rows )
 		{
-			$comment = "$num_rows row";
+			push(@comment, "$num_rows row");
 		}
 		elsif ( 1 < $num_rows )
 		{
-			$comment = "$num_rows rows";
+			push(@comment, "$num_rows rows");
 		}
 		else
 		{
-			$comment = "The world has gone crazy. Negative number of row returned from query.";
+			push
+			(
+				@comment, 
+				"The world has gone crazy. " .
+				"Negative number of row returned from query."
+			);
 		}
-		$page_data->{comment} = [ $comment ];
 	}
+	$page_data->{comment} = \@comment;
 	return 1;
 	# return $page_data;
 };

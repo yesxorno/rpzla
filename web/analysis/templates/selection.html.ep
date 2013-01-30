@@ -99,21 +99,40 @@ window.onload = function() {
 </td>
 
 <td>
-<strong>Restrict</strong><br />
-<select name="col_name">
+<strong>Restrict 1</strong><br />
+<select name="col_name1">
 % foreach my $col ( @{$page_data->{cols}} )
 % {
-	<option <%= $page_data->{where}->{'col_name'} eq $col ? 'selected' : '' %> > <%= $col %> </option>
+	<option <%= $page_data->{restrict}->[0]->{'col_name'} eq $col ? 'selected' : '' %> > <%= $col %> </option>
 % }
 </select>
 &nbsp;
-<select name="col_op">
+<select name="col_op1">
 	<option>=</option>
 	<option>!=</option>
 </select>
 <br />
-<input name="col_value" type="text" 
-value="<%= $page_data->{where}->{'col_value'} %>"
+<input name="col_value1" type="text" 
+value="<%= $page_data->{restrict}->[0]->{'col_value'} %>"
+/>
+</td>
+
+<td>
+<strong>Restrict 2</strong><br />
+<select name="col_name2">
+% foreach my $col ( @{$page_data->{cols}} )
+% {
+	<option <%= $page_data->{restrict}->[1]->{'col_name'} eq $col ? 'selected' : '' %> > <%= $col %> </option>
+% }
+</select>
+&nbsp;
+<select name="col_op2">
+	<option>=</option>
+	<option>!=</option>
+</select>
+<br />
+<input name="col_value2" type="text" 
+value="<%= $page_data->{restrict}->[1]->{'col_value'} %>"
 />
 </td>
 
