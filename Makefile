@@ -36,4 +36,5 @@ apache:	logger
 web:	.dummy
 	@echo 'cd web/analyse ; vi Makefile # set CGI_DIR ; make install'
 
+
 .dummy:
