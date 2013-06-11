@@ -5,14 +5,14 @@ RPZLA translates as Response Policy Zone (RPZ) Log Analysis (LA).
 Its a bit of a misnoma, in that RPZ is a BIND thing and the
 project also relies heavily on log analysis of Apache logs.
 
-It is a first effort to allow IT organisations to utilize the
+It is a Proof of Concept to allow IT organisations to utilize the
 data that can be gathered from an implementation of the RPZ
 feature included in BIND to enhance their organisation's
-security.
+security.  This is NOT a carrier grade solution.
 
 The first release version of BIND to make the RPZ feature 
-available was version 9.8.1.  It is expected and hoped for 
-that this feature will continue to be supported by BIND.
+available was version 9.8.1. This feature has been continuously 
+supported by BIND ever since.
 
 =head2 Licence
 
@@ -20,9 +20,11 @@ See the LICENCE.txt file (GPLv2).
 
 =head2 Status
 
-This project is under B<core development> (pre-Alpha). 
+This project is B<evolving>.
 
-The first alpha release is expectecd in Sept/Oct 2012.
+A first alpha release was achieved in late 2012.  Since
+then, the project has looped between requirement re-analysis
+and alpha.
 
 =head2 Documentation
 
@@ -37,7 +39,7 @@ directory.
 
 Wiki's may come. The current focus is that if you 
 download the repository onto a potentially command line
-only server, you still have the doco there in and easily readable
+only server, and you still have the doco there, in and easily readable
 form.  That is the Perl thing: pod == Plain Old Documentation
 
 =head3 How To
@@ -46,7 +48,9 @@ See Skills below.  This is a project in development.  In a production
 environment it likely involves 3+ sub-systems; all need to be 
 configured and the required supporting technology may require
 manual install (download, build, deploy, configure, use) as it 
-may not have yet hit 'standard package' delivery.
+may not have yet hit 'standard package' delivery.  It is of note
+that RedHat have included BIND 9.8.2 in their repository.  So,
+manual build may not be required, depending on the Linux distro.
 
 =head2 Funding and Sponsorship
 
@@ -63,7 +67,7 @@ Paul Vixie of the Internet Systems Consortium (ISC) (L<http://www.isc.org>)
 implemented the first reputational data based method of spam filtering 
 (summary available at 
 L<https://en.wikipedia.org/wiki/Mail_Abuse_Prevention_System>).  
-This reputational method has become a useful method of spam protection.
+This reputational method has become a standard component in spam protection.
 
 =head3 Domain Based Reputational Data
 
@@ -86,70 +90,50 @@ is left to the local organisation to decide.
 
 The response delivered will commonly be one of two alternatives.  
 
-The first is an NXDOMAIN (no such domain) which is a simple black hole 
-which prevents the client from reaching the domain with a poor reputation.
+The first is an NXDOMAIN (no such domain) which is a simple
+black hole which prevents the client from reaching the domain
+with a poor reputation.
 
 The second is to respond with a CNAME which will redirect the
-client to a common, staged location designed to both collect information 
-about who has visited and also to inform them of the danger to which they
-have been averted by visiting the alternate site instead of the potentially 
-dangerous domain.
+client to a common, staged location designed to both collect
+information about who has visited and also to inform them of
+the danger to which they have been averted by visiting the
+alternate site rather than the potentially dangerous domain.
 
-This second (CNAME) based response is known in the RPZ literature as
-a 'Walled Garden'.  The RPZLA project focusses on this approach and
-integrating data gathered by both the DNS resolvers and visits to the
-Walled Garden to allow distinguishment between human behaviour (more
-precisely web browser type behaviour) and malware behaviour.  The 
-distinguishment between the two and its value is discussed further below.
+This second (CNAME) based response is known in the RPZ
+literature as a 'Walled Garden'.  The RPZLA project
+focusses on this approach and integrating data gathered
+by both the DNS resolvers and visits to the Walled Garden
+to allow distinguishment between human behaviour (more
+precisely web browser type behaviour) and malware behaviour.
+The distinguishment between the two and its value is discussed
+further below.
 
 =head2 Purpose
 
 If a recursive DNS resolver uses RPZ and records in its logs 
 responses made based on RPZ data (i.e something asked for the 
-DNS resolution of a domain with an RPZ based known poor reputation) 
-then that data can be available for later analysis.  
+DNS resolution of a domain with a poor reputation based on the 
+data known to RPZ) then that data can be available for later 
+analysis.  
 
-This tells us which client systems using the resolver are attempting 
-to resolve domains with a poor repuation.
+This tells us which client systems using the resolver(s) are
+attempting to resolve domains with a poor repuation.
 
 Additionally, if the organisation chooses to use a constant CNAME
 (Walled Garden) strategy and visits to the walled garden are also
 logged we can then correlate between the DNS logs and the Walled
-Garden logs allowing us to differentiate between the 'human' type
-behaviour of visiting a dangerous web site and other mechanisms
-which involve the attempted resolution of a 'poor' domain but do
-not then follow the CNAME redirection (specifically do not successfully
-interact with the Walled Garden web site which was referred to by
-the CNAME response).
+Garden logs.
 
-Both cases begin with a request to resolve a domain with a poor
-reputation.  In the case that a CNAME response is then issued
-and the client successfully communicates with the Walled Garden web site,
-a Walled Garden log is generated as well as the DNS log.
-
-This is behaviour that would be expected by a web browser,
-which in general implies a human using the browser.  Note that
-any other process (e.g malware) which behaves entirely like
-a web browser will produce 'false positives'.  However, that
-'false' is only the assumption that it is a human.  Something
-is still attempting to reach a potentially dangerous domain
-(and then behaving like a web browser to successfully interact).
-
-The other case produces only the DNS log as the software that
-requested the domain did then not follow the CNAME response
-or did not successfully interact with the Walled Garden.
-This, almost certainly, distinguishes the interaction as not
-involving a web browser, and thus indicates potential malware.
+This is particularly useful, as some software will continuously
+re-ask the DNS for resolution, and others will cache it.  For 
+software that caches, the frequency of attempts to visit the 
+'dangerous' domain is not recorded in the DNS logs, but in the 
+Walled Garden (assuming they speak http).
 
 The RPZLA project attempts to make all of this DNS and Walled
-Garden data available, and to allow for easy distinction
-between the two described cases.  
-
-This allows an organisation 
-to identify client systems that are either being used 
-by a person in a potentially dangerous manner, or are running
-software without human interaction that wishes to contact 
-potentially dangerous domains.
+Garden data available, and to allow persons monitoring this 
+data to infer differences in malware from the interactions logged.
 
 Additionally, the project wishes to ensure that data gathered
 is stored in a manner which is simple and allows an organisation
@@ -160,7 +144,7 @@ to utilise that data according to their own wishes.
 =head3 Architecture
 
 The key elements to RPZLA are a collection of resolvers which are
-implementing RPZs, a Walled Garden web-site, an RDBMS and a web site
+implementing RPZ, a Walled Garden web-site, an RDBMS, and a web site
 (known as the 'analysis site' in RPZLA parlance) which allows the 
 organisation to view the data delivered to the RDBMS from the 
 resolvers and the Walled Garden.
@@ -192,64 +176,6 @@ the analysis web site which queries that RDBMS and displays data as wished for b
 
 =back
 
-=head2 Skills
-
-=head3 For Deployment
-
-As mentioned in Status above, this project is still in pre-Alpha development.
-
-Nonetheless, the level of capability required to deploy it is not likely
-to change drastically.  It will never be a 'push button' / 'wget ; ./configure ; make all install' solution.
-
-Desired skills are:
-
-=over
-
-=item *
-
-mid-level understanding of BIND, and specifically what RPZ is and how
-to use it
-
-=item *
-
-basic level of PostgreSQL 
-
-=item *
-
-mid-level of Apache understanding, particularly related to virtual hosts,
-CGI and what a default site is
-
-=item *
-
-basic understanding of Perl and how to install modules from CPAN
-
-=back
-
-I.e if you are a 'novice' in any of these areas, this is going to be hard.
-
-If you're going to be deploying, please provide feedback about any
-challenges that you're had.
-
-=head3 For Contribution
-
-If you wish to contribute to the code, you'll need:
-
-=over
-
-=item *
-
-basic shell scripting
-
-=item *
-
-mid-level Perl
-
-=back
-
-There is no rocket science in this.  It is an idea that attempts to 
-use glue to plug together the existing rocket science (BIND, Apache,
-PostgreSQL).
-
 =head2 COMMUNITY
 
 The project community interact via the github mechanisms
@@ -262,7 +188,7 @@ deployed if/when that is required.
 
 =item *
 
-L<http://www.isc.org/files/TakingBackTheDNSrpz2.pdf>
+L<http://dnsrpz.org/>
 
 =back
 
