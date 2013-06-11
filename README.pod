@@ -1,7 +1,7 @@
 
 =head1 PROJECT
 
-RPZLA translates as Response Policy Zone (RPZ) Log Analysis.
+RPZLA translates as Response Policy Zone (RPZ) Log Analysis (LA).
 Its a bit of a misnoma, in that RPZ is a BIND thing and the
 project also relies heavily on log analysis of Apache logs.
 
