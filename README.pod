@@ -188,6 +188,7 @@ deployed if/when that is required.
 =head2 REFERENCES
 
 The site below is the single point of reference for materials about RPZ:
+
 =over 8
 
 =item *
