@@ -37,20 +37,24 @@ Overall documenation is placed in the
 L<https://github.com/yesxorno/rpzla/tree/master/doc> 
 directory.
 
-Wiki's may come. The current focus is that if you 
-download the repository onto a potentially command line
-only server, and you still have the doco there, in and easily readable
-form.  That is the Perl thing: pod == Plain Old Documentation
+Wiki's may come. The current focus is that if you download the
+repository onto a potentially command line only server, and you
+still have the doco there, it is in an easily readable form.
+That is the Perl thing: pod == Plain Old Documentation
 
 =head3 How To
 
-See Skills below.  This is a project in development.  In a production
-environment it likely involves 3+ sub-systems; all need to be 
-configured and the required supporting technology may require
-manual install (download, build, deploy, configure, use) as it 
-may not have yet hit 'standard package' delivery.  It is of note
-that RedHat have included BIND 9.8.2 in their repository.  So,
-manual build may not be required, depending on the Linux distro.
+This is a project in development.  In a production environment
+it likely involves 3+ sub-systems; all need to be configured and
+the required supporting technology may require manual install
+(download, build, deploy, configure, use) as it may not have
+yet hit 'standard package' delivery.
+
+It is of note that RedHat have included BIND 9.8.2 in their
+repositories.  So, manual build may not be required, depending
+on the Linux distro.
+
+See L<https://github.com/yesxorno/rpzla/tree/master/doc> 
 
 =head2 Funding and Sponsorship
 
@@ -76,7 +80,6 @@ this time for use by DNS resolvers.  An organisation is able to
 receive a reputational data feed describing internet domains that
 have a 'poor' reputation.  A poor reputation is usually based on
 the delivery of malware, or other forms of nefarious internet activity.  
-(See L<http://www.isc.org/files/TakingBackTheDNSrpz2.pdf>).
 
 The ISC have provided an efficient standardised
 mechanism for the use of reputational data by recursive DNS resolvers
@@ -184,11 +187,12 @@ deployed if/when that is required.
 
 =head2 REFERENCES
 
+The site below is the single point of reference for materials about RPZ:
 =over 8
 
 =item *
 
-L<http://dnsrpz.org/>
+L<http://dnsrpz.info/>
 
 =back
 
