@@ -16,12 +16,13 @@ use constant	PREP_INSTALL_SQL	=> 	"INSERT INTO dns " .
 #
 #	The BIND log scraper for RPZLA
 #
+#  Essentially just parses log lines from the RPZ log
+#
 
 #####################################################################
 #
 # Overridden methods
 
-# Make the SOAP / XML request for a service
 sub init()
 {
         my $self = shift;
@@ -67,61 +68,86 @@ sub _parse_log_entry($)
 	return $retval;
 }
 
+
+#####################################################################
 #
-# The trouble of parsing bind logs.
+# Our methods
+
+# Extract the name of the zone which matched the query from the 
+# resource record which matched.  Deal with all 4 cases (QNAME, IP,
+# NSIP, NSDNAME)
+sub _zone_from_rr($$$)
+{
+	my ($self, $query, $match_type, $rr) = @_;
+	my $retval = undef;
+	if ( $rr =~ m/$query[.]([\w\.\-]+)/i )
+	{
+		# Then this is a QNAME. (easy case)
+		$retval = $1;
+	}
+	else
+	{
+		my $delim = 'rpz-' . lc($match_type) . '[.]';
+		my @parts = split($delim, $rr);
+		if ( 2 == scalar(@parts) )
+		{
+			$retval = $parts[1];
+		}
+	}
+	return $retval;
+}
+
 #
-# NOTE: we accept the printing of category and/or severity in the log.
-# These fields are ignored for the analysis below.
+# The trouble of parsing bind logs. Separating space delimited words.
 #
 # BIND 9.8.2 does:
 #
-# Separating space delimited words, generally.
-#
-# 20-Oct-2012 
-# 17:32:36.534 
-# client 
-# 2001:878:200:2000:d08c:a4a6:bd0a:a44#62386: 
-# rpz QNAME CNAME rewrite 
-# ipic.staticsdo.ccgslb.com.cn 
-# via 
-# ipic.staticsdo.ccgslb.com.cn.rpz.spamhaus.org
-#
-# 11 fields, with index:
-#   2 == client 
-#   4,5,6,7 == rpz,QNAME,CNAME,rewrite
-#   9 == via
-#
-# Note that CNAME may relate to the rpz config of data
+#  0 Date:		20-Oct-2012 
+#  1 Time:		17:32:36.534 
+#  2 Static:		client 
+#  3 Address:		2001:878:200:2000:d08c:a4a6:bd0a:a44#62386: 
+#  4 Static:		rpz 
+#  5 Match Type:	QNAME 
+#  6 Policy:		CNAME 
+#  7 Static:		rewrite 
+#  8 Query:		ipic.staticsdo.ccgslb.com.cn 
+#  9 Static:		via 
+# 10 RR match:		ipic.staticsdo.ccgslb.com.cn.rpz.spamhaus.org
 #
 # BIND 9.9.0 does:
 #
-# 20-Oct-2012 
-# 12:53:27.438 
-# client 
-# 2001:878:200:2000:c001::1#38909 
-# (nastynasty.com): 
-# rpz QNAME CNAME rewrite 
-# nastynasty.com 
-# via 
-# nastynasty.com.local.rpz
+#  0 Date: 		20-Oct-2012 
+#  1 Time: 		12:53:27.438 
+#  2 Static: 		client 
+#  3 Address: 		2001:878:200:2000:c001::1#38909 
+#  4 Query: 		(nastynasty.com): 
+#  5 Static: 		rpz 
+#  6 Match Type: 	QNAME 
+#  7 Policy: 		CNAME 
+#  8 Static: 		rewrite 
+#  9 Query (again): 	nastynasty.com 
+# 10 Static: 		via 
+# 11 RR match: 		nastynasty.com.local.rpz
 #
-# 12 fields, with index:
-#   2 == client 
-#   5,6,7,8 == rpz,QNAME,CNAME,rewrite
-#   10 == via
 #
-# Note again that CNAME may relate to the rpz config of data
-# We ignore the content of these words, but expect something to be there.
-# (perhaps not the smartest solution).
-
-
 # Return:
 #   undef  	major error
 #   ''		parsing successful (fields set in $field)
 #  'some error' dont like the log entry.  Ignore it
+#
+# in $field we return what we extract from the log (array of string)
+#
+# 0  date
+# 1  time
+# 2  ip address
+# 3  mac (if possible)
+# 4  query domain
+# 5  zone name (within which the match was found)
+#
 sub _parse_bind_log($$)
 {
 	my ($self, $line, $field) = @_;
+	my $match_type = undef;
 	my @chop = split(' ', $line);
 	# first we just assume that we get date and time
 	$field->[0] = shift(@chop);
@@ -145,7 +171,7 @@ sub _parse_bind_log($$)
 	$next = shift(@chop);
 	if ( 'client' ne $next )
 	{
-		return 0;
+		return 'does not look like an RPZ log entry: ignored';
 	}
 	#
 	# Simple sanity check: their should be 8 or 9 words left:
@@ -153,11 +179,12 @@ sub _parse_bind_log($$)
 	my $words_remaining = scalar(@chop);
 	if ( 8 != $words_remaining and 9 != $words_remaining )
 	{
-		return "words remaining out of range."
+		return "# words remaining out of range " .
+			"(unrecognized RPZ format).";
 	}
 	# Okay, log is meant for us.
 	# next field should be the IPv4/IPv6 address plus port number of the 
-	# client.  Pull and store.
+	# client.  Pull and store address and get mac.
 	$next = shift(@chop);
 	if ( $next =~ m/([\dabcdefABCDEF\.\:]+)[\#]([\d]+)/ )
 	{
@@ -171,39 +198,40 @@ sub _parse_bind_log($$)
 			"'$next'";
 	}
 	#
-	# No we just match what remains:
+	# Half way there, roughly ;-)
 	#
+	my $retval = ''; # assuming success
 	if ( 9 == $words_remaining )
 	{
 		# burn the '(some.domain):' it is redundant
 		shift(@chop);
 	}
 	my $rest = join(' ', @chop);
-	if (  $rest =~ m/rpz [\w]+ [\w]+ rewrite ([\w\.\-]+) via ([\w\.\-]+)/ )
+	if ( $rest =~ m/rpz ([\w]+) [\w]+ rewrite ([\w\.\-]+) via ([\w\.\-]+)/ )
 	{
-		my $query = $1;
+		$match_type = $1; # we use this below ...
+		my $query = $2;
 		$field->[4] = $query;
-		my $zone = $2;
-		if ( $zone =~ m/$query[.]([\w\.\-]+)/ )
+		my $rr = $3;
+		my $zone = $self->_zone_from_rr($query, $match_type, $rr);
+		if ( defined($zone) )
 		{
-			$field->[5] = $1;
+			$field->[5] = $zone;
 			return '';
 		}
 		else
 		{
-			return "Could not match query '$query' " .
-				"in full zone '$zone'";
+			$retval = "Could not match query '$query' with match " .
+				"type $match_type from resoure recrord ". 
+				"'$zone'";
 		}
 	}
 	else
 	{
-		return "Last part of line did not parse with " .
+		$retval = "Last part of line did not parse with " .
 			"'rpz (word) (word) rewrite (domain) via (zone)'";
 	}
-	#
-	# UNREACHED (should not be reached)
-	#
-	return undef;
+	return $retval;
 }
 
 1;
