@@ -1,4 +1,11 @@
 
+
+Bigger issues:
+
+- error with '%' in IPv6 addresses (link-local)
+
+- control over which zones get logged.
+
 New UI
 ======
 
