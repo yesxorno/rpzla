@@ -37,6 +37,7 @@ sub init()
 	$self->_log_path($self->_config->{'bind'}->{'log'});
 	# it checks if log_path makes sense for us
 	$self->SUPER::init();
+	$self->_zone_filter_check();
 }
 
 sub _parse_log_entry($)
@@ -46,6 +47,7 @@ sub _parse_log_entry($)
 	my @field = ();
 	my $err = undef;
 	my $status = $self->_parse_bind_log($line, \@field, \$err);
+	my $zone = $field[5];
 	if ( not defined($status) )
 	{
 		# major baulk
@@ -61,17 +63,101 @@ sub _parse_log_entry($)
 		$self->debug("Log entry: $line");
 		$retval = undef;
 	}
-	else
+	elsif ( $self->_zone_include($zone) )
 	{
 		$retval = join(' ', @field);
+	}
+	else
+	{
+		# zone filtered
+		$self->debug("RR filtered for zone '$zone'");
+		$retval = undef;
 	}
 	return $retval;
 }
 
-
 #####################################################################
 #
 # Our methods
+
+sub _zone_filter_check()
+{
+	my $self = shift;
+	my $conf = $self->_config->{'bind'};
+	if 
+	( 
+		not defined($conf->{'zone_filter'}) 
+	or 
+		0 == scalar(keys(%{$conf->{'zone_filter'}}))
+	)
+	{
+		$conf->{'zone_filter'}->{'include_all'} = 1;
+	}
+	else
+	{
+		$conf->{'zone_filter'}->{'include_all'} = 0;
+		# Default policy is 'include'
+		if ( not defined($conf->{'zone_filter'}->{'zone_to_db'}) )
+		{
+			$conf->{'zone_filter'}->{'zone_to_db'} = 1;
+		}
+		if ( not defined($conf->{'zone_filter'}->{'list'}) )
+		{
+			$self->exit_now("No zone_filter list elements.");
+		}
+	}
+	$self->debug
+	(
+		">>>> Zone Filter: " .
+		"include_all: " .  $conf->{'zone_filter'}->{'include_all'} .
+		" zone_to_db: " .  
+		$conf->{'zone_filter'}->{'zone_to_db'} .
+		" list: [" . 
+		join(", ", @{$conf->{'zone_filter'}->{'list'}->{'zone'}}) .
+		"]"
+	);
+}
+
+# Implement zone filtering
+#
+# return value indicates if records from the provided zone should be
+# shipped to the DB.
+sub _zone_include($)
+{
+	my ($self, $zone) = @_;
+	my $zf_conf = $self->_config->{'bind'}->{'zone_filter'};
+	my $retval = 0;
+	my $match = 0;
+	if ( $zf_conf->{'include_all'} )
+	{
+		$retval = 1;
+		$match = 0;
+	}
+	else # do matching
+	{
+		# $self->debug(join(", ", $zf_conf->{'list'}));
+		for my $z ( @{$zf_conf->{'list'}->{'zone'}} )
+		{
+			$self->debug("Testing zone: '$z' against '$zone'");
+			if ( $zone eq $z )
+			{
+				$self->debug("Matched zone: '$z'");
+				$match = 1;
+				last;
+			}
+		}
+		my $zone_to_db = $zf_conf->{'zone_to_db'};
+		$self->debug("zone_to_db == $zone_to_db, match == $match");
+		$retval =
+		(
+			( $match and $zone_to_db )
+		or
+			( !$match and !$zone_to_db )
+		);
+	}
+	$self->debug("Zone '$zone' include == $retval");
+	return $retval;
+}
 
 # Extract the name of the zone which matched the query from the 
 # resource record which matched.  Deal with all 4 cases (QNAME, IP,
@@ -186,7 +272,7 @@ sub _parse_bind_log($$)
 	# next field should be the IPv4/IPv6 address plus port number of the 
 	# client.  Pull and store address and get mac.
 	$next = shift(@chop);
-	if ( $next =~ m/([\dabcdefABCDEF\.\:]+)[\#]([\d]+)/ )
+	if ( $next =~ m/([\dabcdefABCDEF\.\:\%]+)[\#]([\d]+)/ )
 	{
 		# looks good, we ignore the port number
 		$field->[2] = $1;
